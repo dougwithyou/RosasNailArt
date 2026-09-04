@@ -45,11 +45,25 @@ create index appointments_start_at_idx on appointments (start_at);
 create index appointments_status_idx on appointments (status);
 create index appointments_stripe_session_idx on appointments (stripe_session_id);
 
+-- open_slots: explicit windows Maribel opens for a future date. availability.js
+-- reads these instead of a fixed schedule — a date with no rows is closed.
+create table open_slots (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  start_time time not null,
+  end_time time not null,
+  created_at timestamptz not null default now(),
+  constraint end_after_start check (end_time > start_time)
+);
+
+create index open_slots_date_idx on open_slots (date);
+
 -- All access goes through the service-role key from serverless functions only —
 -- RLS stays on with no policies, so the anon/public key (if ever exposed) can't read or write anything.
 alter table services enable row level security;
 alter table blocked_dates enable row level security;
 alter table appointments enable row level security;
+alter table open_slots enable row level security;
 
 -- Seed the 6 services currently listed on the landing page.
 insert into services (name, duration_minutes, price_cents, deposit_cents, category, sort_order) values

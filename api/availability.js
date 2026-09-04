@@ -1,12 +1,7 @@
 const { getSupabase } = require('../lib/supabase');
-const { zonedTimeToUtc, getZonedDateParts } = require('../lib/timezone');
+const { zonedTimeToUtc } = require('../lib/timezone');
 const {
   TIMEZONE,
-  WORK_DAYS,
-  OPEN_HOUR,
-  OPEN_MINUTE,
-  CLOSE_HOUR,
-  CLOSE_MINUTE,
   BUFFER_MINUTES,
   MIN_NOTICE_MINUTES,
   BOOKING_HORIZON_DAYS,
@@ -15,6 +10,11 @@ const {
 } = require('../lib/business-hours');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseTimeParts(timeStr) {
+  const [hour, minute] = timeStr.split(':').map((n) => parseInt(n, 10));
+  return { hour, minute };
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -38,12 +38,6 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const { weekday } = getZonedDateParts(dayStart, TIMEZONE);
-  if (!WORK_DAYS.includes(weekday)) {
-    res.status(200).json({ slots: [] });
-    return;
-  }
-
   const supabase = getSupabase();
 
   const { data: blocked, error: blockedError } = await supabase
@@ -61,16 +55,36 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const openAt = zonedTimeToUtc(date, OPEN_HOUR, OPEN_MINUTE, TIMEZONE);
-  const closeAt = zonedTimeToUtc(date, CLOSE_HOUR, CLOSE_MINUTE, TIMEZONE);
+  // Days are closed by default — only windows Maribel explicitly opened count.
+  const { data: openSlots, error: openSlotsError } = await supabase
+    .from('open_slots')
+    .select('start_time, end_time')
+    .eq('date', date);
+
+  if (openSlotsError) {
+    res.status(500).json({ error: 'No se pudo verificar disponibilidad' });
+    return;
+  }
+  if (!openSlots || openSlots.length === 0) {
+    res.status(200).json({ slots: [] });
+    return;
+  }
 
   const pendingCutoff = new Date(now.getTime() - PENDING_HOLD_MINUTES * 60000).toISOString();
+
+  // Bound the busy-appointments query to the day's full open window.
+  const windowStart = openSlots.reduce((min, w) => (w.start_time < min ? w.start_time : min), openSlots[0].start_time);
+  const windowEnd = openSlots.reduce((max, w) => (w.end_time > max ? w.end_time : max), openSlots[0].end_time);
+  const { hour: minH, minute: minM } = parseTimeParts(windowStart);
+  const { hour: maxH, minute: maxM } = parseTimeParts(windowEnd);
+  const dayOpenAt = zonedTimeToUtc(date, minH, minM, TIMEZONE);
+  const dayCloseAt = zonedTimeToUtc(date, maxH, maxM, TIMEZONE);
 
   const { data: busy, error: busyError } = await supabase
     .from('appointments')
     .select('start_at, end_at, status, created_at')
-    .lt('start_at', closeAt.toISOString())
-    .gt('end_at', openAt.toISOString())
+    .lt('start_at', dayCloseAt.toISOString())
+    .gt('end_at', dayOpenAt.toISOString())
     .or(`status.eq.confirmed,and(status.eq.pending_payment,created_at.gte.${pendingCutoff})`);
 
   if (busyError) {
@@ -84,22 +98,35 @@ module.exports = async function handler(req, res) {
   }));
 
   const earliestStart = new Date(now.getTime() + MIN_NOTICE_MINUTES * 60000);
+  const slotSet = new Set();
   const slots = [];
 
-  for (
-    let t = openAt.getTime();
-    t + duration * 60000 <= closeAt.getTime();
-    t += SLOT_STEP_MINUTES * 60000
-  ) {
-    const slotStart = t;
-    const slotEnd = t + duration * 60000;
-    if (slotStart < earliestStart.getTime()) continue;
+  for (const window of openSlots) {
+    const { hour: openH, minute: openM } = parseTimeParts(window.start_time);
+    const { hour: closeH, minute: closeM } = parseTimeParts(window.end_time);
+    const openAt = zonedTimeToUtc(date, openH, openM, TIMEZONE);
+    const closeAt = zonedTimeToUtc(date, closeH, closeM, TIMEZONE);
 
-    const overlaps = busyIntervals.some((b) => slotStart < b.end && slotEnd > b.start);
-    if (overlaps) continue;
+    for (
+      let t = openAt.getTime();
+      t + duration * 60000 <= closeAt.getTime();
+      t += SLOT_STEP_MINUTES * 60000
+    ) {
+      const slotStart = t;
+      const slotEnd = t + duration * 60000;
+      if (slotStart < earliestStart.getTime()) continue;
 
-    slots.push(new Date(slotStart).toISOString());
+      const overlaps = busyIntervals.some((b) => slotStart < b.end && slotEnd > b.start);
+      if (overlaps) continue;
+
+      const iso = new Date(slotStart).toISOString();
+      if (!slotSet.has(iso)) {
+        slotSet.add(iso);
+        slots.push(iso);
+      }
+    }
   }
 
+  slots.sort();
   res.status(200).json({ slots });
 };

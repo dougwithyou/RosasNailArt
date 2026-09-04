@@ -1,7 +1,12 @@
 const Stripe = require('stripe');
 const { getSupabase } = require('../lib/supabase');
-const { TIMEZONE, WORK_DAYS, OPEN_HOUR, OPEN_MINUTE, CLOSE_HOUR, CLOSE_MINUTE, BUFFER_MINUTES, MIN_NOTICE_MINUTES, BOOKING_HORIZON_DAYS, PENDING_HOLD_MINUTES } = require('../lib/business-hours');
-const { zonedTimeToUtc, getZonedDateParts } = require('../lib/timezone');
+const { TIMEZONE, BUFFER_MINUTES, MIN_NOTICE_MINUTES, BOOKING_HORIZON_DAYS, PENDING_HOLD_MINUTES } = require('../lib/business-hours');
+const { zonedTimeToUtc } = require('../lib/timezone');
+
+function parseTimeParts(timeStr) {
+  const [hour, minute] = timeStr.split(':').map((n) => parseInt(n, 10));
+  return { hour, minute };
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -55,22 +60,37 @@ module.exports = async function handler(req, res) {
 
   const end = new Date(start.getTime() + totalDuration * 60000);
 
-  // Re-validate business hours / notice / horizon server-side.
+  // Re-validate notice / horizon, and that the slot falls inside a window Maribel opened.
   const now = new Date();
-  const { weekday } = getZonedDateParts(start, TIMEZONE);
   const dateStr = start.toISOString().slice(0, 10);
-  const openAt = zonedTimeToUtc(dateStr, OPEN_HOUR, OPEN_MINUTE, TIMEZONE);
-  const closeAt = zonedTimeToUtc(dateStr, CLOSE_HOUR, CLOSE_MINUTE, TIMEZONE);
   const horizonEnd = new Date(now.getTime() + BOOKING_HORIZON_DAYS * 24 * 60 * 60000);
   const earliestStart = new Date(now.getTime() + MIN_NOTICE_MINUTES * 60000);
 
-  if (
-    !WORK_DAYS.includes(weekday) ||
-    start < openAt ||
-    end > closeAt ||
-    start > horizonEnd ||
-    start < earliestStart
-  ) {
+  if (start > horizonEnd || start < earliestStart) {
+    res.status(409).json({ error: 'Ese horario ya no está disponible. Por favor elige otro.' });
+    return;
+  }
+
+  const { data: blocked } = await supabase.from('blocked_dates').select('date').eq('date', dateStr).maybeSingle();
+  const { data: openSlots, error: openSlotsError } = await supabase
+    .from('open_slots')
+    .select('start_time, end_time')
+    .eq('date', dateStr);
+
+  if (openSlotsError) {
+    res.status(500).json({ error: 'No se pudo verificar disponibilidad' });
+    return;
+  }
+
+  const fitsInOpenWindow = !blocked && (openSlots || []).some((w) => {
+    const { hour: openH, minute: openM } = parseTimeParts(w.start_time);
+    const { hour: closeH, minute: closeM } = parseTimeParts(w.end_time);
+    const openAt = zonedTimeToUtc(dateStr, openH, openM, TIMEZONE);
+    const closeAt = zonedTimeToUtc(dateStr, closeH, closeM, TIMEZONE);
+    return start >= openAt && end <= closeAt;
+  });
+
+  if (!fitsInOpenWindow) {
     res.status(409).json({ error: 'Ese horario ya no está disponible. Por favor elige otro.' });
     return;
   }
