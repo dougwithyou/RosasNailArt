@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservar cita — Rosas Nails Art</title>
+  <meta name="description" content="Reserva tu cita en Rosas Nails Art. Elige tu servicio, la fecha y hora que prefieras, y confirma con un pequeño depósito.">
+  <meta name="theme-color" content="#161316">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/nav.css">
+  <link rel="stylesheet" href="css/booking.css">
+</head>
+<body>
+
+<!-- ===== SITE HEADER ===== -->
+<header class="site-header" id="site-header">
+  <div class="container">
+    <a href="index.html" class="nav-logo" aria-label="Rosas Nails Art — Inicio">
+      <div class="nav-logo__mark">R</div>
+      <div class="nav-logo__text">
+        <span class="nav-logo__name">Rosas Nails Art</span>
+        <span class="nav-logo__tagline">Manassas, VA</span>
+      </div>
+    </a>
+
+    <nav class="nav-links" aria-label="Navegación principal">
+      <a href="index.html#top"                class="nav-link">Inicio</a>
+      <a href="index.html#servicios-preview"  class="nav-link">Servicios</a>
+      <a href="index.html#galeria-preview"    class="nav-link">Galería</a>
+      <a href="index.html#por-que"            class="nav-link">Nosotras</a>
+      <a href="index.html#contacto"           class="nav-link">Contacto</a>
+    </nav>
+
+    <a href="booking.html" class="btn btn--primary nav-cta">Reservar cita</a>
+
+    <button class="nav-burger" id="nav-burger" aria-expanded="false" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile drawer -->
+<nav class="nav-drawer" id="nav-drawer" aria-label="Menú móvil">
+  <a href="index.html#top"                class="nav-link">Inicio</a>
+  <a href="index.html#servicios-preview"  class="nav-link">Servicios</a>
+  <a href="index.html#galeria-preview"    class="nav-link">Galería</a>
+  <a href="index.html#por-que"            class="nav-link">Nosotras</a>
+  <a href="index.html#contacto"           class="nav-link">Contacto</a>
+  <a href="booking.html" class="btn btn--primary">Reservar cita →</a>
+</nav>
+
+<!-- ===== BOOKING WIZARD ===== -->
+<main class="booking-page">
+  <div class="container container--narrow">
+
+    <div class="booking-head">
+      <div class="section-label">Reserva en 3 pasos</div>
+      <h1 class="section-title">Agenda tu cita</h1>
+      <p>Elige tu servicio, un horario disponible, y confirma con un pequeño depósito. El resto se paga el día de tu cita.</p>
+    </div>
+
+    <!-- Step indicator -->
+    <ol class="booking-steps" id="booking-steps">
+      <li class="booking-step active" data-step="1"><span>1</span>Servicio</li>
+      <li class="booking-step" data-step="2"><span>2</span>Fecha y hora</li>
+      <li class="booking-step" data-step="3"><span>3</span>Tus datos</li>
+    </ol>
+
+    <!-- Panel: loading / error -->
+    <div id="booking-status" class="booking-status" hidden></div>
+
+    <!-- STEP 1: Service selection -->
+    <section class="booking-panel" id="panel-service" data-panel="1">
+      <div class="service-select-grid" id="service-select-grid">
+        <!-- populated by js/booking.js -->
+      </div>
+
+      <div class="addon-select" id="addon-select" hidden>
+        <h4>¿Quieres agregar Nail Art & Diseños?</h4>
+        <div id="addon-options"></div>
+      </div>
+
+      <div class="booking-actions">
+        <button type="button" class="btn btn--primary" id="btn-to-step-2" disabled>Continuar →</button>
+      </div>
+    </section>
+
+    <!-- STEP 2: Date + time -->
+    <section class="booking-panel" id="panel-datetime" data-panel="2" hidden>
+      <div class="datetime-grid">
+        <div class="calendar-wrap">
+          <div class="calendar-nav">
+            <button type="button" class="calendar-nav__btn" id="cal-prev" aria-label="Mes anterior">‹</button>
+            <div class="calendar-nav__label" id="cal-label"></div>
+            <button type="button" class="calendar-nav__btn" id="cal-next" aria-label="Mes siguiente">›</button>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="slots-wrap">
+          <h4 id="slots-heading">Elige una fecha</h4>
+          <div class="slots-grid" id="slots-grid"></div>
+        </div>
+      </div>
+
+      <div class="booking-actions">
+        <button type="button" class="btn btn--secondary" id="btn-back-1">← Atrás</button>
+        <button type="button" class="btn btn--primary" id="btn-to-step-3" disabled>Continuar →</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: Contact + pay -->
+    <section class="booking-panel" id="panel-contact" data-panel="3" hidden>
+      <div class="booking-summary" id="booking-summary"></div>
+
+      <form id="booking-form" class="booking-form">
+        <label>
+          Nombre completo
+          <input type="text" name="clientName" required autocomplete="name">
+        </label>
+        <label>
+          Teléfono
+          <input type="tel" name="clientPhone" required autocomplete="tel">
+        </label>
+        <label>
+          Email
+          <input type="email" name="clientEmail" required autocomplete="email">
+        </label>
+        <label>
+          Notas (opcional)
+          <textarea name="notes" rows="3" placeholder="Alguna preferencia o detalle para tu cita"></textarea>
+        </label>
+
+        <div class="booking-actions">
+          <button type="button" class="btn btn--secondary" id="btn-back-2">← Atrás</button>
+          <button type="submit" class="btn btn--gold" id="btn-pay">Pagar depósito y confirmar →</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SUCCESS -->
+    <section class="booking-panel booking-success" id="panel-success" hidden>
+      <div class="booking-success__icon">✓</div>
+      <h2>¡Tu cita quedó confirmada!</h2>
+      <p>Te enviamos los detalles a tu email. Te esperamos en Rosas Nails Art.</p>
+      <a href="index.html" class="btn btn--secondary">Volver al inicio</a>
+    </section>
+
+  </div>
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="nav-logo" aria-label="Rosas Nails Art">
+          <div class="nav-logo__mark" style="background:rgba(255,255,255,.1);color:#fff">R</div>
+          <div class="nav-logo__text">
+            <span class="nav-logo__name" style="color:#fff">Rosas Nails Art</span>
+            <span class="nav-logo__tagline">Manassas, VA</span>
+          </div>
+        </a>
+        <p>Tu espacio de belleza y relajación en el corazón de Manassas, Virginia.</p>
+        <div class="footer-socials">
+          <a href="https://www.facebook.com/share/1CFKVmjfkE/?mibextid=wwXIfr" target="_blank" rel="noopener" class="footer-social-link" aria-label="Facebook">👍</a>
+          <a href="https://www.tiktok.com/@rosasnailsart6" target="_blank" rel="noopener" class="footer-social-link" aria-label="TikTok">🎵</a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h5>¿Preguntas?</h5>
+        <ul>
+          <li><a href="https://wa.me/15715138905?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20mi%20reserva" target="_blank" rel="noopener">Escríbenos por WhatsApp</a></li>
+          <li><a href="tel:+15715138905">Llamar</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Contacto</h5>
+        <div class="footer-contact-item">
+          <span class="icon">📍</span>
+          <span>7548 Diplomat Dr B, Suite 201, Manassas, VA 20109</span>
+        </div>
+        <div class="footer-contact-item">
+          <span class="icon">⏰</span>
+          <span>Lun–Vie: 9:30am – 6:30pm</span>
+        </div>
+        <div class="footer-contact-item">
+          <span class="icon">📱</span>
+          <a href="tel:+15715138905">+1 (571) 513-8905</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 Rosas Nails Art · Todos los derechos reservados</p>
+      <p>Diseñado con ❤️ en Manassas, VA</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/booking.js"></script>
+</body>
+</html>

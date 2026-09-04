@@ -149,36 +149,6 @@ function initGalleryFilter() {
   });
 }
 
-// ── Booking form ─────────────────────────────────
-function initBookingForm() {
-  const form    = $('#booking-form');
-  const success = $('#form-success');
-  if (!form) return;
-
-  // Populate service select from URL param
-  const params   = new URLSearchParams(window.location.search);
-  const service  = params.get('service');
-  const serviceEl = $('#service-select');
-  if (service && serviceEl) {
-    $$('option', serviceEl).forEach(opt => {
-      if (opt.value === service) opt.selected = true;
-    });
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = $('[type=submit]', form);
-    btn.disabled = true;
-    btn.textContent = 'Enviando…';
-
-    // Simulate async submission
-    await new Promise(r => setTimeout(r, 1200));
-
-    form.style.display = 'none';
-    if (success) success.classList.add('show');
-  });
-}
-
 // ── Smooth page links ─────────────────────────────
 function initSmoothScrollLinks() {
   $$('a[href^="#"]').forEach(link => {
@@ -238,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initParallax();
   initMarquee();
   initGalleryFilter();
-  initBookingForm();
   initSmoothScrollLinks();
   initSparkle();
 });
