@@ -1,0 +1,91 @@
+/* =============================================
+   ROSAS NAILS ART — Design Tokens
+   ============================================= */
+
+:root {
+  /* ── Color Palette ── */
+  --color-ink:       #161316;
+  --color-ink-mid:   #6b6266;
+  --color-ink-soft:  #8a7f83;
+  --color-border:    #f1eeef;
+  --color-bg:        #ffffff;
+  --color-surface:   #faf8f9;
+
+  --color-gold:      #a97e2f;
+  --color-gold-mid:  #c9a24a;
+  --color-gold-lt:   #e8c977;
+  --color-rose:      #f784e6;
+  --color-rose-lt:   #fbeef6;
+
+  /* Gradients */
+  --grad-gold:       linear-gradient(120deg, #a97e2f, #e8c977 55%, #a97e2f);
+  --grad-hero-bg:
+    radial-gradient(circle at 85% 15%, rgba(255,132,230,.08) 0%, transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(232,201,119,.12) 0%, transparent 45%),
+    #ffffff;
+  --grad-hero-photo: linear-gradient(160deg, #f6e9d8 0%, #f3d9ea 55%, #f6e9d8 100%);
+  --grad-accent-bg:  linear-gradient(135deg, #fff9f0 0%, #fff0f8 100%);
+
+  /* ── Typography ── */
+  --font-sans:   'Montserrat', sans-serif;
+  --font-alt:    'Montserrat Alternates', sans-serif;
+  --font-script: 'Updock', cursive;
+
+  --text-xs:   .78rem;
+  --text-sm:   .85rem;
+  --text-base: 1rem;
+  --text-lg:   1.1rem;
+  --text-xl:   1.3rem;
+  --text-2xl:  1.6rem;
+  --text-3xl:  2.2rem;
+  --text-4xl:  3rem;
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+  --weight-black:   800;
+
+  /* ── Spacing ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ── Radius ── */
+  --radius-sm:   8px;
+  --radius-md:  14px;
+  --radius-lg:  18px;
+  --radius-xl:  26px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 2px 8px rgba(22,19,22,.06);
+  --shadow-md:  0 8px 24px rgba(22,19,22,.10);
+  --shadow-lg:  0 20px 50px rgba(22,19,22,.14);
+  --shadow-card: 0 4px 16px rgba(22,19,22,.07);
+
+  /* ── Transitions ── */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+  --dur-fast:   150ms;
+  --dur-base:   250ms;
+  --dur-slow:   400ms;
+  --dur-slower: 600ms;
+
+  /* ── Layout ── */
+  --max-w-content: 1200px;
+  --max-w-narrow:  820px;
+  --nav-h:  72px;
+}
