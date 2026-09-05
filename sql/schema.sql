@@ -69,16 +69,18 @@ alter table open_slots enable row level security;
 -- Deposit is a flat $45 per appointment (Maribel's policy) — see
 -- lib/business-hours.js DEPOSIT_CENTS, which is what appointments.js actually
 -- charges; the deposit_cents column here is kept for reference only.
--- Acrylic Extensions price is the lowest tier (Short); she quotes up to $170
--- for Extra Long — not modeled as separate tiers yet.
+-- Acrylic Extensions is split into 3 selectable sizes (Short/Medium/Extra
+-- Long) since her pricing varies by length, not by a single "starting at".
 insert into services (name, duration_minutes, price_cents, deposit_cents, category, sort_order) values
-  ('Basic Manicure',                 75,  4500, 4500, 'service', 1),
-  ('Builder Gel Manicure',          150, 12000, 4500, 'service', 2),
-  ('Acrylic Extensions',            180, 12500, 4500, 'service', 3),
-  ('Classic Pedicure',               60,  8500, 4500, 'service', 4),
-  ('Rosas Spa Pedicure',             90, 12500, 4500, 'service', 5),
-  ('Gel Manicure + Pedicure Combo', 120, 12500, 4500, 'service', 6),
-  ('Nail Art & Diseños',             30,  1000, 4500, 'addon',   7),
-  ('Removal',                        15,  1500, 4500, 'addon',   8),
-  ('Rosas Hand Spa',                 10,  2500, 4500, 'addon',   9),
-  ('Paraffin Treatment',             10,   800, 4500, 'addon',  10);
+  ('Basic Manicure',                  75,  4500, 4500, 'service',  1),
+  ('Builder Gel Manicure',           150, 12000, 4500, 'service',  2),
+  ('Acrylic Extensions — Short',      180, 12500, 4500, 'service',  3),
+  ('Acrylic Extensions — Medium',     180, 13500, 4500, 'service',  4),
+  ('Acrylic Extensions — Extra Long', 180, 17000, 4500, 'service',  5),
+  ('Classic Pedicure',                60,  8500, 4500, 'service',  6),
+  ('Rosas Spa Pedicure',              90, 12500, 4500, 'service',  7),
+  ('Gel Manicure + Pedicure Combo',  120, 12500, 4500, 'service',  8),
+  ('Nail Art & Diseños',              30,  1000, 4500, 'addon',    9),
+  ('Removal',                         15,  1500, 4500, 'addon',   10),
+  ('Rosas Hand Spa',                  10,  2500, 4500, 'addon',   11),
+  ('Paraffin Treatment',              10,   800, 4500, 'addon',   12);
