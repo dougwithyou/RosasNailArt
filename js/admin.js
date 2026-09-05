@@ -140,7 +140,15 @@ async function loadAgenda() {
               ${a.client_phone} · ${money(a.price_cents)} (depósito ${money(a.deposit_cents)})
             </div>
             <div class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</div>
+            <div class="agenda-item__actions">
+              <button type="button" data-notify="reschedule">Reagendar</button>
+              <button type="button" data-notify="late">Voy tarde</button>
+              <button type="button" data-notify="custom">Mensaje</button>
+            </div>
           `;
+          $$('[data-notify]', item).forEach((btn) => {
+            btn.addEventListener('click', () => sendAppointmentNotice(a, btn.dataset.notify));
+          });
           section.appendChild(item);
         });
       }
@@ -286,6 +294,87 @@ function initServiceForm() {
   });
 }
 
+// ── Notificaciones ────────────────────────────────
+async function sendAppointmentNotice(appointment, type) {
+  let customMessage;
+  if (type === 'custom') {
+    customMessage = prompt(`Mensaje para ${appointment.client_name}:`);
+    if (!customMessage?.trim()) return;
+  } else if (!confirm(`¿Enviar aviso de "${type === 'reschedule' ? 'reagendar' : 'voy tarde'}" a ${appointment.client_name}?`)) {
+    return;
+  }
+
+  try {
+    await apiFetch('/api/admin/notify', {
+      method: 'POST',
+      body: JSON.stringify({ appointmentId: appointment.id, type, customMessage }),
+    });
+    alert('Mensaje enviado.');
+  } catch (err) {
+    alert('No se pudo enviar el mensaje.');
+  }
+}
+
+const BROADCAST_TEMPLATES = {
+  promo: {
+    subject: '✨ Promoción especial en Rosas Nails Art',
+    message: 'Tenemos una promoción especial esta semana. ¡Escríbenos o reserva tu cita para aprovecharla!',
+  },
+  'new-hours': {
+    subject: 'Nuevos horarios disponibles — Rosas Nails Art',
+    message: 'Abrimos nuevos horarios para las próximas semanas. Entra a reservar tu cita antes de que se llenen.',
+  },
+  vacation: {
+    subject: 'Estaremos cerradas — Rosas Nails Art',
+    message: 'Les avisamos que estaremos cerradas por vacaciones. Ya estamos de vuelta pronto — ¡gracias por su paciencia!',
+  },
+};
+
+async function loadBroadcastCount() {
+  const el = $('#broadcast-count');
+  try {
+    const { recipientCount } = await apiFetch('/api/admin/broadcast');
+    el.textContent = `Se enviará a ${recipientCount} clienta(s) que han reservado antes.`;
+  } catch (err) {
+    el.textContent = 'No se pudo calcular las destinatarias.';
+  }
+}
+
+function initBroadcast() {
+  $('#broadcast-template').addEventListener('change', (e) => {
+    const tpl = BROADCAST_TEMPLATES[e.target.value];
+    const form = $('#broadcast-form');
+    if (tpl) {
+      form.subject.value = tpl.subject;
+      form.message.value = tpl.message;
+    } else {
+      form.subject.value = '';
+      form.message.value = '';
+    }
+  });
+
+  $('#broadcast-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = $('#broadcast-error');
+    errorEl.hidden = true;
+    const form = e.target;
+
+    if (!confirm('¿Enviar este anuncio a todas las clientas?')) return;
+
+    try {
+      const { recipientCount } = await apiFetch('/api/admin/broadcast', {
+        method: 'POST',
+        body: JSON.stringify({ subject: form.subject.value, message: form.message.value }),
+      });
+      alert(`Anuncio enviado a ${recipientCount} clienta(s).`);
+      form.reset();
+    } catch (err) {
+      errorEl.textContent = err.message || 'No se pudo enviar el anuncio.';
+      errorEl.hidden = false;
+    }
+  });
+}
+
 // ── Init ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   if (!$('.admin-page')) return;
@@ -294,4 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initAgendaNav();
   initOpenSlotForm();
   initServiceForm();
+  initBroadcast();
+  loadBroadcastCount();
 });
