@@ -1,6 +1,6 @@
 const Stripe = require('stripe');
 const { getSupabase } = require('../lib/supabase');
-const { TIMEZONE, BUFFER_MINUTES, MIN_NOTICE_MINUTES, BOOKING_HORIZON_DAYS, PENDING_HOLD_MINUTES } = require('../lib/business-hours');
+const { TIMEZONE, BUFFER_MINUTES, MIN_NOTICE_MINUTES, BOOKING_HORIZON_DAYS, PENDING_HOLD_MINUTES, DEPOSIT_CENTS } = require('../lib/business-hours');
 const { zonedTimeToUtc } = require('../lib/timezone');
 
 function parseTimeParts(timeStr) {
@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
   const allIds = [serviceId, ...(Array.isArray(addonIds) ? addonIds : [])];
   const { data: services, error: servicesError } = await supabase
     .from('services')
-    .select('id, name, duration_minutes, price_cents, deposit_cents, active')
+    .select('id, name, duration_minutes, price_cents, active')
     .in('id', allIds);
 
   if (servicesError || !services || services.length !== allIds.length || services.some((s) => !s.active)) {
@@ -55,7 +55,8 @@ module.exports = async function handler(req, res) {
 
   const totalDuration = services.reduce((sum, s) => sum + s.duration_minutes, 0);
   const totalPrice = services.reduce((sum, s) => sum + s.price_cents, 0);
-  const totalDeposit = services.reduce((sum, s) => sum + s.deposit_cents, 0);
+  // Flat deposit per appointment (Maribel's policy), not per service line.
+  const totalDeposit = DEPOSIT_CENTS;
   const serviceLabel = services.map((s) => s.name).join(' + ');
 
   const end = new Date(start.getTime() + totalDuration * 60000);

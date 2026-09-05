@@ -51,6 +51,12 @@
 .admin-form input:focus,
 .admin-form select:focus { outline: none; border-color: var(--color-gold); }
 
+.admin-note {
+  font-size: var(--text-sm);
+  color: var(--color-ink-soft);
+  margin-bottom: var(--space-4);
+}
+
 .admin-error {
   background: var(--color-rose-lt);
   color: var(--color-ink);
@@ -154,7 +160,7 @@
 .services-list { display: grid; gap: var(--space-3); }
 .service-row {
   display: grid;
-  grid-template-columns: 1.4fr repeat(4, .8fr) auto;
+  grid-template-columns: 1.4fr repeat(2, .8fr) auto;
   gap: var(--space-3);
   align-items: center;
   padding: var(--space-4);

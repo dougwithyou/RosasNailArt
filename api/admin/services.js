@@ -1,12 +1,12 @@
 const { getSupabase } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
+const { DEPOSIT_CENTS } = require('../../lib/business-hours');
 
 function validServicePayload(body) {
-  const { name, durationMinutes, priceCents, depositCents, category } = body || {};
+  const { name, durationMinutes, priceCents, category } = body || {};
   if (!name?.trim()) return false;
   if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) return false;
   if (!Number.isInteger(priceCents) || priceCents < 0) return false;
-  if (!Number.isInteger(depositCents) || depositCents < 0) return false;
   if (category && !['service', 'addon'].includes(category)) return false;
   return true;
 }
@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
       res.status(400).json({ error: 'Datos inválidos' });
       return;
     }
-    const { name, durationMinutes, priceCents, depositCents, category, sortOrder } = req.body;
+    const { name, durationMinutes, priceCents, category, sortOrder } = req.body;
 
     const { data, error } = await supabase
       .from('services')
@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
         name: name.trim(),
         duration_minutes: durationMinutes,
         price_cents: priceCents,
-        deposit_cents: depositCents,
+        deposit_cents: DEPOSIT_CENTS,
         category: category || 'service',
         sort_order: Number.isInteger(sortOrder) ? sortOrder : 0,
       })
@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method === 'PUT') {
-    const { id, name, durationMinutes, priceCents, depositCents, category, active, sortOrder } = req.body || {};
+    const { id, name, durationMinutes, priceCents, category, active, sortOrder } = req.body || {};
     if (!id) {
       res.status(400).json({ error: 'Falta el id del servicio' });
       return;
@@ -70,7 +70,6 @@ module.exports = async function handler(req, res) {
     if (name !== undefined) update.name = name.trim();
     if (durationMinutes !== undefined) update.duration_minutes = durationMinutes;
     if (priceCents !== undefined) update.price_cents = priceCents;
-    if (depositCents !== undefined) update.deposit_cents = depositCents;
     if (category !== undefined) update.category = category;
     if (active !== undefined) update.active = active;
     if (sortOrder !== undefined) update.sort_order = sortOrder;

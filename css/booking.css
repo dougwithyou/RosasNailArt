@@ -232,6 +232,13 @@
 }
 .booking-summary b { color: var(--color-ink); }
 
+.booking-policy {
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+  line-height: 1.6;
+  margin-bottom: var(--space-6);
+}
+
 .booking-form {
   display: grid;
   gap: var(--space-4);

@@ -11,8 +11,11 @@ const MONTH_LABELS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-const WORK_DAYS = [1, 2, 3, 4, 5];
-const BOOKING_HORIZON_DAYS = 60;
+// Días abiertos los define Maribel desde su panel (no hay un horario fijo) —
+// el calendario deja elegir cualquier día futuro dentro del horizonte, y el
+// servidor devuelve los horarios reales (vacío si ese día no está abierto).
+const BOOKING_HORIZON_DAYS = 21; // 3 semanas, según la política de Maribel
+const DEPOSIT_CENTS = 4500; // depósito fijo por cita
 
 const state = {
   services: [],
@@ -132,7 +135,7 @@ function selectedServicesSummary() {
   const main = state.services.find((s) => s.id === state.selectedServiceId);
   const addons = state.addons.filter((a) => state.selectedAddonIds.has(a.id));
   const price = (main?.price_cents || 0) + addons.reduce((sum, a) => sum + a.price_cents, 0);
-  const deposit = (main?.deposit_cents || 0) + addons.reduce((sum, a) => sum + a.deposit_cents, 0);
+  const deposit = DEPOSIT_CENTS;
   const label = [main?.name, ...addons.map((a) => a.name)].filter(Boolean).join(' + ');
   return { label, price, deposit };
 }
@@ -142,7 +145,7 @@ function isDaySelectable(d) {
   const now = new Date();
   const horizon = new Date(now.getTime() + BOOKING_HORIZON_DAYS * 24 * 60 * 60000);
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return WORK_DAYS.includes(d.getDay()) && d >= startToday && d <= horizon;
+  return d >= startToday && d <= horizon;
 }
 
 function renderCalendar() {

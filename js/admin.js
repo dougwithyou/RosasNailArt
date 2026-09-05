@@ -238,7 +238,6 @@ async function loadServices() {
         <input type="text" value="${s.name}" data-field="name">
         <input type="number" value="${s.duration_minutes}" min="1" data-field="durationMinutes" title="Duración (min)">
         <input type="number" value="${(s.price_cents / 100).toFixed(2)}" min="0" step="0.01" data-field="priceCents" title="Precio ($)">
-        <input type="number" value="${(s.deposit_cents / 100).toFixed(2)}" min="0" step="0.01" data-field="depositCents" title="Depósito ($)">
         <label><input type="checkbox" data-field="active" ${s.active ? 'checked' : ''}> Activo</label>
         <button type="button" class="btn btn--secondary" data-save>Guardar</button>
       `;
@@ -248,7 +247,6 @@ async function loadServices() {
         payload.name = $('[data-field=name]', row).value;
         payload.durationMinutes = parseInt($('[data-field=durationMinutes]', row).value, 10);
         payload.priceCents = Math.round(parseFloat($('[data-field=priceCents]', row).value) * 100);
-        payload.depositCents = Math.round(parseFloat($('[data-field=depositCents]', row).value) * 100);
         payload.active = $('[data-field=active]', row).checked;
 
         try {

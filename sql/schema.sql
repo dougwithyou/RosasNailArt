@@ -65,11 +65,20 @@ alter table blocked_dates enable row level security;
 alter table appointments enable row level security;
 alter table open_slots enable row level security;
 
--- Seed the 6 services currently listed on the landing page.
+-- Seed the real catalog from Maribel's answers (Respuestas_Maribel.pdf).
+-- Deposit is a flat $45 per appointment (Maribel's policy) — see
+-- lib/business-hours.js DEPOSIT_CENTS, which is what appointments.js actually
+-- charges; the deposit_cents column here is kept for reference only.
+-- Acrylic Extensions price is the lowest tier (Short); she quotes up to $170
+-- for Extra Long — not modeled as separate tiers yet.
 insert into services (name, duration_minutes, price_cents, deposit_cents, category, sort_order) values
-  ('Basic Manicure',       75,  4500, 1000, 'service', 1),
-  ('Rosas Spa Pedicure',   90, 12500, 2500, 'service', 2),
-  ('Acrylic Extensions',  180, 13000, 3000, 'service', 3),
-  ('Gel·X',               120,  9500, 2000, 'service', 4),
-  ('Waxing',               45,  1800,  500, 'service', 5),
-  ('Nail Art & Diseños',   30,  1500,    0, 'addon',   6);
+  ('Basic Manicure',                 75,  4500, 4500, 'service', 1),
+  ('Builder Gel Manicure',          150, 12000, 4500, 'service', 2),
+  ('Acrylic Extensions',            180, 12500, 4500, 'service', 3),
+  ('Classic Pedicure',               60,  8500, 4500, 'service', 4),
+  ('Rosas Spa Pedicure',             90, 12500, 4500, 'service', 5),
+  ('Gel Manicure + Pedicure Combo', 120, 12500, 4500, 'service', 6),
+  ('Nail Art & Diseños',             30,  1000, 4500, 'addon',   7),
+  ('Removal',                        15,  1500, 4500, 'addon',   8),
+  ('Rosas Hand Spa',                 10,  2500, 4500, 'addon',   9),
+  ('Paraffin Treatment',             10,   800, 4500, 'addon',  10);
