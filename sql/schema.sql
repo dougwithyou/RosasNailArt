@@ -37,13 +37,6 @@ create table appointments (
   deposit_cents integer not null,
   price_cents integer not null default 0,
   service_label text not null default '',
-  -- Phase 2 (notifications): public token used by the 30-min-before reminder
-  -- link so a client can confirm attendance without logging in, plus
-  -- timestamps to avoid re-sending the same reminder or double-counting a
-  -- confirmation.
-  confirmation_token uuid not null default gen_random_uuid(),
-  reminder_sent_at timestamptz,
-  attendance_confirmed_at timestamptz,
   created_at timestamptz not null default now(),
   constraint end_after_start check (end_at > start_at)
 );
@@ -51,8 +44,6 @@ create table appointments (
 create index appointments_start_at_idx on appointments (start_at);
 create index appointments_status_idx on appointments (status);
 create index appointments_stripe_session_idx on appointments (stripe_session_id);
-create unique index appointments_confirmation_token_idx on appointments (confirmation_token);
-create index appointments_reminder_lookup_idx on appointments (status, start_at) where reminder_sent_at is null;
 
 -- open_slots: explicit windows Maribel opens for a future date. availability.js
 -- reads these instead of a fixed schedule — a date with no rows is closed.
