@@ -27,6 +27,8 @@ const state = {
   selectedDate: null, // 'YYYY-MM-DD'
   selectedSlot: null, // ISO string
   step: 1,
+  availableDates: new Set(), // dates (within the horizon) with at least one open slot
+  availabilityLoaded: false,
 };
 
 function startOfMonth(d) {
@@ -94,9 +96,19 @@ function renderServiceGrid() {
       card.classList.add('selected');
       state.selectedServiceId = card.dataset.id;
       $('#btn-to-step-2').disabled = false;
+      resetAvailability();
       renderAddons();
     });
   });
+}
+
+// Duration drives which days/slots are available — clear the cached
+// availability whenever the selected service/add-ons change.
+function resetAvailability() {
+  state.availableDates = new Set();
+  state.availabilityLoaded = false;
+  state.selectedDate = null;
+  state.selectedSlot = null;
 }
 
 function renderAddons() {
@@ -118,6 +130,7 @@ function renderAddons() {
     input.addEventListener('change', () => {
       if (input.checked) state.selectedAddonIds.add(input.value);
       else state.selectedAddonIds.delete(input.value);
+      resetAvailability();
     });
   });
 }
@@ -149,6 +162,41 @@ function isDaySelectable(d) {
   return d >= startToday && d <= horizon;
 }
 
+async function loadAvailableDays() {
+  const duration = totalDurationMinutes();
+  if (!duration) return;
+
+  const now = new Date();
+  const from = dateKey(now);
+  const horizonEnd = new Date(now.getTime() + BOOKING_HORIZON_DAYS * 24 * 60 * 60000);
+  const to = dateKey(horizonEnd);
+
+  try {
+    const res = await fetch(`/api/availability-days?from=${from}&to=${to}&durationMinutes=${duration}`);
+    if (!res.ok) throw new Error('availability-days');
+    const { availableDates } = await res.json();
+    state.availableDates = new Set(availableDates);
+  } catch (err) {
+    state.availableDates = new Set();
+  }
+  state.availabilityLoaded = true;
+
+  if (!state.selectedDate && state.availableDates.size) {
+    const first = [...state.availableDates].sort()[0];
+    const [y, m, d] = first.split('-').map(Number);
+    state.calendarMonth = new Date(y, m - 1, 1);
+    renderCalendar();
+    selectDate(first);
+    return;
+  }
+
+  if (!state.availableDates.size) {
+    $('#slots-grid').innerHTML = '<p class="slots-empty">No hay citas disponibles en las próximas semanas. Escríbenos por WhatsApp.</p>';
+  }
+
+  renderCalendar();
+}
+
 function renderCalendar() {
   const label = $('#cal-label');
   label.textContent = `${MONTH_LABELS[state.calendarMonth.getMonth()]} ${state.calendarMonth.getFullYear()}`;
@@ -176,8 +224,16 @@ function renderCalendar() {
     const d = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth(), day);
     const el = document.createElement('div');
     const key = dateKey(d);
-    const selectable = isDaySelectable(d);
-    el.className = 'cal-day' + (selectable ? ' enabled' : '') + (state.selectedDate === key ? ' selected' : '');
+    const inRange = isDaySelectable(d);
+    // Before the first availability check, don't grey out days we simply
+    // haven't looked up yet — only mark them unavailable once we know.
+    const hasSlots = !state.availabilityLoaded || state.availableDates.has(key);
+    const selectable = inRange && hasSlots;
+    el.className =
+      'cal-day' +
+      (selectable ? ' enabled' : '') +
+      (inRange && !hasSlots ? ' unavailable' : '') +
+      (state.selectedDate === key ? ' selected' : '');
     el.textContent = String(day);
     if (selectable) {
       el.addEventListener('click', () => selectDate(key));
@@ -319,7 +375,10 @@ function initBookingWizard() {
   loadServices().catch(() => showStatus('No se pudieron cargar los servicios. Recarga la página.'));
   renderCalendar();
 
-  $('#btn-to-step-2').addEventListener('click', () => goToStep(2));
+  $('#btn-to-step-2').addEventListener('click', () => {
+    goToStep(2);
+    if (!state.availabilityLoaded) loadAvailableDays();
+  });
   $('#btn-back-1').addEventListener('click', () => goToStep(1));
   $('#btn-to-step-3').addEventListener('click', () => {
     renderSummary();
