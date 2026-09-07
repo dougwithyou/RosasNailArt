@@ -193,6 +193,11 @@
   color: #fff;
 }
 .calendar-grid .cal-day.empty { visibility: hidden; }
+.calendar-grid .cal-day.unavailable {
+  color: var(--color-ink-soft);
+  background: var(--color-border);
+  cursor: not-allowed;
+}
 
 .slots-wrap h4 { margin-bottom: var(--space-4); font-size: var(--text-base); }
 .slots-grid {
