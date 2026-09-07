@@ -119,16 +119,19 @@
           </div>
 
           <div class="panel-card">
-            <h3>Clientas frecuentes</h3>
-            <div id="top-clients-list" class="top-clients-list"></div>
+            <h3>Citas de hoy</h3>
+            <div id="today-appointments-list" class="today-appointments-list"></div>
           </div>
         </section>
 
         <!-- AGENDA -->
-        <section class="admin-panel" data-tab-panel="agenda" hidden>
-          <div class="agenda-view-toggle">
-            <button type="button" class="agenda-view-btn active" data-view="week">Semana</button>
-            <button type="button" class="agenda-view-btn" data-view="month">Mes</button>
+        <section class="admin-panel admin-panel--agenda" data-tab-panel="agenda" hidden>
+          <div class="agenda-toolbar">
+            <div class="agenda-view-toggle">
+              <button type="button" class="agenda-view-btn active" data-view="week">Semana</button>
+              <button type="button" class="agenda-view-btn" data-view="month">Mes</button>
+            </div>
+            <button type="button" class="btn btn--primary btn--sm" id="btn-add-appointment">+ Agregar cita</button>
           </div>
 
           <div class="admin-panel__head">
@@ -272,6 +275,53 @@
     <div class="week-popover" id="week-popover" hidden>
       <button type="button" class="week-popover__close" id="week-popover-close" aria-label="Cerrar">×</button>
       <div class="week-popover__body" id="week-popover-body"></div>
+    </div>
+
+    <!-- Manual appointment modal (for clients booked outside the site, e.g. WhatsApp) -->
+    <div class="modal-overlay" id="add-appointment-overlay" hidden>
+      <div class="modal-card">
+        <div class="modal-card__head">
+          <h3>Agregar cita manual</h3>
+          <button type="button" class="modal-card__close" id="add-appointment-close" aria-label="Cerrar">×</button>
+        </div>
+        <p class="admin-note">Para una cita que ya coordinaste por WhatsApp u otro medio. Bloquea el horario al instante — no se cobra depósito por este medio.</p>
+        <form id="add-appointment-form" class="admin-form">
+          <label>
+            Servicio
+            <select name="serviceId" id="add-appt-service" required></select>
+          </label>
+          <div class="admin-form admin-form--inline">
+            <label>
+              Fecha
+              <input type="date" name="date" required>
+            </label>
+            <label>
+              Hora
+              <input type="time" name="time" required>
+            </label>
+          </div>
+          <label>
+            Nombre de la clienta
+            <input type="text" name="clientName" required>
+          </label>
+          <div class="admin-form admin-form--inline">
+            <label>
+              Teléfono
+              <input type="tel" name="clientPhone" required>
+            </label>
+            <label>
+              Email
+              <input type="email" name="clientEmail" required>
+            </label>
+          </div>
+          <label>
+            Notas (opcional)
+            <textarea name="notes" rows="2"></textarea>
+          </label>
+          <p class="admin-error" id="add-appointment-error" hidden></p>
+          <button type="submit" class="btn btn--primary">Agregar y bloquear horario</button>
+        </form>
+      </div>
     </div>
 
   </div>

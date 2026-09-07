@@ -16,8 +16,9 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TIMEZONE = 'America/New_York';
 const DOW_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DOW_LABELS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const STATUS_LABELS = { confirmed: 'Confirmada', pending_payment: 'Pendiente de pago' };
-const HOUR_HEIGHT = 56; // px per hour in the weekly grid — must match css/admin.css's repeating-linear-gradient
+const STATUS_LABELS = { confirmed: 'Confirmada', pending_payment: 'Pendiente de pago', cancelled: 'Cancelada' };
+const MIN_HOUR_HEIGHT = 30; // px per hour floor in the weekly grid, below which it scrolls instead of shrinking further
+const MIN_MONTH_ROW_HEIGHT = 64; // px floor per week row in the month grid
 
 const MONTH_LABELS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -42,6 +43,8 @@ const state = {
 };
 
 let clientsCache = [];
+let servicesCache = [];
+let lastWeekGridData = null; // { weekStart, appointments, openSlots } — kept for resize re-render
 
 function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -141,6 +144,7 @@ function switchPanel(name) {
 
   if (name === 'inicio') loadStats();
   if (name === 'clientes' && !clientsCache.length) loadClients();
+  if (name === 'agenda') requestAnimationFrame(() => loadAgenda());
 }
 
 function initSidebar() {
@@ -151,7 +155,7 @@ function initSidebar() {
 
 // ── Inicio (stats) ─────────────────────────────────
 async function loadStats() {
-  const wrap = $('#top-clients-list');
+  const wrap = $('#today-appointments-list');
   wrap.innerHTML = '<p class="agenda-empty">Cargando…</p>';
 
   try {
@@ -169,30 +173,90 @@ async function loadStats() {
       $('#stat-next-appt').textContent = 'No hay citas próximas.';
     }
 
-    if (!stats.topClients.length) {
-      wrap.innerHTML = '<p class="agenda-empty">Todavía no hay clientas.</p>';
-    } else {
-      wrap.innerHTML = stats.topClients
-        .map(
-          (c) => `
-        <button type="button" class="top-client-row" data-email="${c.email}">
-          <span>${c.name}</span>
-          <span class="top-client-row__visits">${c.visits} visita${c.visits === 1 ? '' : 's'}</span>
-        </button>
-      `
-        )
-        .join('');
-      $$('.top-client-row', wrap).forEach((btn) => {
-        btn.addEventListener('click', () => openClientPanel(btn.dataset.email));
-      });
-    }
+    renderTodayAppointments(stats.todayAppointments || []);
   } catch (err) {
     wrap.innerHTML = '<p class="agenda-empty">No se pudieron cargar las métricas.</p>';
   }
 }
 
+function renderTodayAppointments(list) {
+  const wrap = $('#today-appointments-list');
+  if (!list.length) {
+    wrap.innerHTML = '<p class="agenda-empty">No hay citas hoy.</p>';
+    return;
+  }
+  wrap.innerHTML = list
+    .map((t) => {
+      const time = new Date(t.startAt).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
+      return `
+      <div class="agenda-item" data-id="${t.id}">
+        <div class="agenda-item__time">${time}</div>
+        <div class="agenda-item__meta">
+          <button type="button" class="link-btn" data-open-client="${t.phoneKey}"><b>${t.clientName}</b></button> — ${t.serviceLabel}
+        </div>
+        <div class="agenda-item__status ${t.status}">${STATUS_LABELS[t.status] || t.status}</div>
+        <div class="agenda-item__actions">
+          <button type="button" data-notify="reschedule">Reagendar</button>
+          <button type="button" data-notify="late">Voy tarde</button>
+          <button type="button" data-notify="custom">Mensaje</button>
+          <button type="button" data-cancel class="danger-link">Cancelar</button>
+        </div>
+      </div>
+    `;
+    })
+    .join('');
+
+  list.forEach((t) => {
+    const item = $(`.agenda-item[data-id="${t.id}"]`, wrap);
+    if (!item) return;
+    $$('[data-notify]', item).forEach((btn) => {
+      btn.addEventListener('click', () => sendAppointmentNotice({ id: t.id, client_name: t.clientName }, btn.dataset.notify));
+    });
+    $('[data-cancel]', item)?.addEventListener('click', () =>
+      cancelAppointment({ id: t.id, client_name: t.clientName, status: t.status }, () => loadStats())
+    );
+    $('[data-open-client]', item)?.addEventListener('click', (e) => openClientPanel(e.target.dataset.openClient || t.phoneKey));
+  });
+}
+
+// ── Cancel appointment (shared by Inicio, Agenda popover, day cards) ──
+async function cancelAppointment(appointment, onDone) {
+  if (!confirm(`¿Cancelar la cita de ${appointment.client_name}? Se le avisará por email${appointment.status === 'confirmed' ? ' y se le reembolsará el depósito' : ''}.`)) {
+    return;
+  }
+  try {
+    const result = await apiFetch('/api/admin/appointments', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: appointment.id, action: 'cancel' }),
+    });
+    alert(result.refunded ? 'Cita cancelada y depósito reembolsado.' : 'Cita cancelada.');
+    if (onDone) onDone();
+  } catch (err) {
+    alert(err.message || 'No se pudo cancelar la cita.');
+  }
+}
+
 // ── Agenda ────────────────────────────────────────
-function renderDayCard(day, dayAppointments, dayOpenSlots) {
+function appointmentActionsHtml(a) {
+  if (a.status === 'cancelled') return '';
+  return `
+    <div class="agenda-item__actions">
+      <button type="button" data-notify="reschedule">Reagendar</button>
+      <button type="button" data-notify="late">Voy tarde</button>
+      <button type="button" data-notify="custom">Mensaje</button>
+      <button type="button" data-cancel class="danger-link">Cancelar</button>
+    </div>
+  `;
+}
+
+function wireAppointmentActions(container, a, onCancelled) {
+  $$('[data-notify]', container).forEach((btn) => {
+    btn.addEventListener('click', () => sendAppointmentNotice(a, btn.dataset.notify));
+  });
+  $('[data-cancel]', container)?.addEventListener('click', () => cancelAppointment(a, onCancelled));
+}
+
+function renderDayCard(day, dayAppointments, dayOpenSlots, onCancelled) {
   const key = dateKey(day);
   const section = document.createElement('div');
   section.className = 'agenda-day';
@@ -218,7 +282,7 @@ function renderDayCard(day, dayAppointments, dayOpenSlots) {
     dayAppointments.forEach((a) => {
       const time = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
       const item = document.createElement('div');
-      item.className = 'agenda-item';
+      item.className = `agenda-item${a.status === 'cancelled' ? ' is-cancelled' : ''}`;
       item.innerHTML = `
         <div class="agenda-item__time">${time}</div>
         <div class="agenda-item__meta">
@@ -226,15 +290,9 @@ function renderDayCard(day, dayAppointments, dayOpenSlots) {
           ${a.client_phone} · ${money(a.price_cents)} (depósito ${money(a.deposit_cents)})
         </div>
         <div class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</div>
-        <div class="agenda-item__actions">
-          <button type="button" data-notify="reschedule">Reagendar</button>
-          <button type="button" data-notify="late">Voy tarde</button>
-          <button type="button" data-notify="custom">Mensaje</button>
-        </div>
+        ${appointmentActionsHtml(a)}
       `;
-      $$('[data-notify]', item).forEach((btn) => {
-        btn.addEventListener('click', () => sendAppointmentNotice(a, btn.dataset.notify));
-      });
+      wireAppointmentActions(item, a, onCancelled);
       section.appendChild(item);
     });
   }
@@ -272,13 +330,27 @@ function formatHourLabel(hour) {
   return `${h12}${period}`;
 }
 
+// How much vertical room is left below `el`'s top, down to the viewport
+// bottom (minus a little breathing room) — used so the week/month grids fill
+// the screen instead of needing an inner scrollbar.
+function availableHeightBelow(el, bottomPadding) {
+  const rect = el.getBoundingClientRect();
+  return Math.max(window.innerHeight - rect.top - bottomPadding, 200);
+}
+
 function renderWeekGrid(weekStart, appointments, openSlots) {
   const grid = $('#agenda-week-grid');
   grid.innerHTML = '';
 
   const { startHour, endHour } = computeGridHours(openSlots);
+  const hourCount = endHour - startHour;
   const gridStartMin = startHour * 60;
-  const bodyHeight = (endHour - startHour) * HOUR_HEIGHT;
+
+  const headerHeight = 62; // approx height of .week-grid__header, kept in sync with CSS
+  const available = availableHeightBelow(grid, 24) - headerHeight;
+  const hourHeight = Math.max(Math.floor(available / hourCount), MIN_HOUR_HEIGHT);
+  const bodyHeight = hourCount * hourHeight;
+  grid.style.setProperty('--hour-h', `${hourHeight}px`);
 
   const header = document.createElement('div');
   header.className = 'week-grid__header';
@@ -302,7 +374,7 @@ function renderWeekGrid(weekStart, appointments, openSlots) {
   for (let h = startHour; h < endHour; h++) {
     const lbl = document.createElement('div');
     lbl.className = 'week-grid__time';
-    lbl.style.height = `${HOUR_HEIGHT}px`;
+    lbl.style.height = `${hourHeight}px`;
     lbl.textContent = formatHourLabel(h);
     times.appendChild(lbl);
   }
@@ -322,8 +394,8 @@ function renderWeekGrid(weekStart, appointments, openSlots) {
       .forEach((s) => {
         const startMin = timeToMinutes(s.start_time);
         const endMin = timeToMinutes(s.end_time);
-        const top = Math.max((startMin - gridStartMin) * (HOUR_HEIGHT / 60), 0);
-        const height = Math.max((endMin - startMin) * (HOUR_HEIGHT / 60), 4);
+        const top = Math.max((startMin - gridStartMin) * (hourHeight / 60), 0);
+        const height = Math.max((endMin - startMin) * (hourHeight / 60), 4);
         const el = document.createElement('div');
         el.className = 'week-slot week-slot--open';
         el.style.top = `${top}px`;
@@ -332,27 +404,31 @@ function renderWeekGrid(weekStart, appointments, openSlots) {
         col.appendChild(el);
       });
 
-    appointments
+    // Cancelled appointments render first (as dimmed ghosts) so active
+    // bookings always paint on top if a slot gets reused.
+    const dayAppointments = appointments
       .filter((a) => a.start_at.slice(0, 10) === key)
-      .forEach((a) => {
-        const startMin = easternMinutesOfDay(new Date(a.start_at));
-        const endMin = easternMinutesOfDay(new Date(a.end_at));
-        const top = Math.max((startMin - gridStartMin) * (HOUR_HEIGHT / 60), 0);
-        const height = Math.max((endMin - startMin) * (HOUR_HEIGHT / 60), 18);
-        const timeLabel = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
+      .sort((a, b) => (a.status === 'cancelled' ? -1 : 0) - (b.status === 'cancelled' ? -1 : 0));
 
-        const el = document.createElement('button');
-        el.type = 'button';
-        el.className = `week-slot week-slot--appt status-${a.status}`;
-        el.style.top = `${top}px`;
-        el.style.height = `${height}px`;
-        el.innerHTML = `<b>${timeLabel}</b> ${a.client_name}`;
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openWeekPopover(a, el);
-        });
-        col.appendChild(el);
+    dayAppointments.forEach((a) => {
+      const startMin = easternMinutesOfDay(new Date(a.start_at));
+      const endMin = easternMinutesOfDay(new Date(a.end_at));
+      const top = Math.max((startMin - gridStartMin) * (hourHeight / 60), 0);
+      const height = Math.max((endMin - startMin) * (hourHeight / 60), 18);
+      const timeLabel = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
+
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = `week-slot week-slot--appt status-${a.status}`;
+      el.style.top = `${top}px`;
+      el.style.height = `${height}px`;
+      el.innerHTML = `<b>${timeLabel}</b> ${a.client_name}`;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openWeekPopover(a, el);
       });
+      col.appendChild(el);
+    });
 
     body.appendChild(col);
   }
@@ -374,9 +450,16 @@ function openWeekPopover(a, anchorEl) {
       <span class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</span>
     </p>
     <div class="week-popover__actions">
-      <button type="button" data-notify="reschedule">Reagendar</button>
-      <button type="button" data-notify="late">Voy tarde</button>
-      <button type="button" data-notify="custom">Mensaje</button>
+      ${
+        a.status === 'cancelled'
+          ? ''
+          : `
+        <button type="button" data-notify="reschedule">Reagendar</button>
+        <button type="button" data-notify="late">Voy tarde</button>
+        <button type="button" data-notify="custom">Mensaje</button>
+        <button type="button" data-cancel class="danger-link">Cancelar cita</button>
+      `
+      }
     </div>
   `;
   $$('[data-notify]', body).forEach((btn) => {
@@ -384,6 +467,10 @@ function openWeekPopover(a, anchorEl) {
       pop.hidden = true;
       sendAppointmentNotice(a, btn.dataset.notify);
     });
+  });
+  $('[data-cancel]', body)?.addEventListener('click', () => {
+    pop.hidden = true;
+    cancelAppointment(a, () => loadAgenda());
   });
 
   const rect = anchorEl.getBoundingClientRect();
@@ -423,6 +510,7 @@ async function loadWeekView() {
     const toDate = new Date(weekEnd);
     toDate.setHours(23, 59, 59, 999);
     const { appointments, openSlots } = await fetchRange(state.weekStart.toISOString(), toDate.toISOString());
+    lastWeekGridData = { weekStart: new Date(state.weekStart), appointments, openSlots };
     renderWeekGrid(state.weekStart, appointments, openSlots);
   } catch (err) {
     grid.innerHTML = '<p class="agenda-empty">No se pudo cargar la agenda.</p>';
@@ -449,6 +537,7 @@ async function loadMonthView() {
 
     const apptCountByDay = {};
     appointments.forEach((a) => {
+      if (a.status === 'cancelled') return;
       const key = a.start_at.slice(0, 10);
       apptCountByDay[key] = (apptCountByDay[key] || 0) + 1;
     });
@@ -466,31 +555,40 @@ async function loadMonthView() {
     });
 
     const leadingBlanks = monthStart.getDay();
+    const daysInMonth = monthEnd.getDate();
+    const rowCount = Math.ceil((leadingBlanks + daysInMonth) / 7);
+    const available = availableHeightBelow(grid, 24) - 28; // minus the day-of-week label row
+    const rowHeight = Math.max(Math.floor(available / rowCount), MIN_MONTH_ROW_HEIGHT);
+    grid.style.setProperty('--month-row-h', `${rowHeight}px`);
+
     for (let i = 0; i < leadingBlanks; i++) {
       const el = document.createElement('div');
       el.className = 'cal-day empty';
       grid.appendChild(el);
     }
 
-    const daysInMonth = monthEnd.getDate();
     for (let day = 1; day <= daysInMonth; day++) {
       const d = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
       const key = dateKey(d);
-      const el = document.createElement('div');
-      el.className = 'cal-day enabled' + (state.selectedDay === key ? ' selected' : '');
       const apptCount = apptCountByDay[key] || 0;
       const openCount = openCountByDay[key] || 0;
+      const el = document.createElement('div');
+      el.className =
+        'cal-day enabled' +
+        (state.selectedDay === key ? ' selected' : '') +
+        (openCount ? ' has-open' : '') +
+        (apptCount ? ' has-appts' : '');
       el.innerHTML = `
         <span class="cal-day__num">${day}</span>
-        ${openCount ? `<span class="cal-day__dot cal-day__dot--open"></span>` : ''}
-        ${apptCount ? `<span class="cal-day__dot cal-day__dot--booked">${apptCount}</span>` : ''}
+        ${apptCount ? `<span class="cal-day__badge">${apptCount} cita${apptCount === 1 ? '' : 's'}</span>` : ''}
+        ${openCount && !apptCount ? `<span class="cal-day__badge cal-day__badge--open">Disponible</span>` : ''}
       `;
       el.addEventListener('click', () => {
         state.selectedDay = key;
         const dayAppointments = appointments.filter((a) => a.start_at.slice(0, 10) === key);
         const dayOpenSlots = openSlots.filter((s) => s.date === key);
         list.innerHTML = '';
-        list.appendChild(renderDayCard(d, dayAppointments, dayOpenSlots));
+        list.appendChild(renderDayCard(d, dayAppointments, dayOpenSlots, () => loadMonthView()));
         $$('.cal-day', grid).forEach((c) => c.classList.remove('selected'));
         el.classList.add('selected');
       });
@@ -528,6 +626,85 @@ function initAgendaNav() {
       state.weekStart.setDate(state.weekStart.getDate() + 7);
     }
     loadAgenda();
+  });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (state.currentPanel !== 'agenda') return;
+      if (state.viewMode === 'week' && lastWeekGridData) {
+        renderWeekGrid(lastWeekGridData.weekStart, lastWeekGridData.appointments, lastWeekGridData.openSlots);
+      } else if (state.viewMode === 'month') {
+        loadMonthView();
+      }
+    }, 200);
+  });
+}
+
+// ── Manual appointment creation ───────────────────
+function openAddAppointmentModal() {
+  const overlay = $('#add-appointment-overlay');
+  const form = $('#add-appointment-form');
+  form.reset();
+  $('#add-appointment-error').hidden = true;
+
+  const select = $('#add-appt-service');
+  select.innerHTML = servicesCache
+    .filter((s) => s.active)
+    .map((s) => `<option value="${s.id}">${s.name} (${s.duration_minutes} min · ${money(s.price_cents)})</option>`)
+    .join('');
+
+  const today = dateKey(new Date());
+  form.date.min = today;
+  form.date.value = today;
+
+  overlay.hidden = false;
+}
+
+function closeAddAppointmentModal() {
+  $('#add-appointment-overlay').hidden = true;
+}
+
+function initAddAppointmentModal() {
+  $('#btn-add-appointment').addEventListener('click', openAddAppointmentModal);
+  $('#add-appointment-close').addEventListener('click', closeAddAppointmentModal);
+  $('#add-appointment-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'add-appointment-overlay') closeAddAppointmentModal();
+  });
+
+  $('#add-appointment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = $('#add-appointment-error');
+    errorEl.hidden = true;
+    const form = e.target;
+
+    const startAt = new Date(`${form.date.value}T${form.time.value}:00`);
+    if (Number.isNaN(startAt.getTime())) {
+      errorEl.textContent = 'Fecha u hora inválida.';
+      errorEl.hidden = false;
+      return;
+    }
+
+    try {
+      await apiFetch('/api/admin/appointments', {
+        method: 'POST',
+        body: JSON.stringify({
+          serviceId: form.serviceId.value,
+          clientName: form.clientName.value,
+          clientPhone: form.clientPhone.value,
+          clientEmail: form.clientEmail.value,
+          startAt: startAt.toISOString(),
+          notes: form.notes.value,
+        }),
+      });
+      closeAddAppointmentModal();
+      loadAgenda();
+      loadStats();
+    } catch (err) {
+      errorEl.textContent = err.message || 'No se pudo agregar la cita.';
+      errorEl.hidden = false;
+    }
   });
 }
 
@@ -622,6 +799,7 @@ async function loadServices() {
 
   try {
     const { services } = await apiFetch('/api/admin/services');
+    servicesCache = services;
     list.innerHTML = '';
     services.forEach((s) => {
       const row = document.createElement('div');
@@ -631,7 +809,10 @@ async function loadServices() {
         <input type="number" value="${s.duration_minutes}" min="1" data-field="durationMinutes" title="Duración (min)">
         <input type="number" value="${(s.price_cents / 100).toFixed(2)}" min="0" step="0.01" data-field="priceCents" title="Precio ($)">
         <label><input type="checkbox" data-field="active" ${s.active ? 'checked' : ''}> Activo</label>
-        <button type="button" class="btn btn--secondary" data-save>Guardar</button>
+        <div class="service-row__buttons">
+          <button type="button" class="btn btn--secondary" data-save>Guardar</button>
+          <button type="button" class="btn-icon-delete" data-delete title="Borrar servicio">Borrar</button>
+        </div>
       `;
 
       $('[data-save]', row).addEventListener('click', async () => {
@@ -645,6 +826,19 @@ async function loadServices() {
           await apiFetch('/api/admin/services', { method: 'PUT', body: JSON.stringify(payload) });
         } catch (err) {
           alert('No se pudo guardar el servicio.');
+        }
+      });
+
+      $('[data-delete]', row).addEventListener('click', async () => {
+        if (!confirm(`¿Borrar "${s.name}"?`)) return;
+        try {
+          const result = await apiFetch('/api/admin/services', { method: 'DELETE', body: JSON.stringify({ id: s.id }) });
+          if (result.deactivated) {
+            alert(`"${s.name}" tiene citas asociadas, así que se desactivó en vez de borrarse.`);
+          }
+          loadServices();
+        } catch (err) {
+          alert('No se pudo borrar el servicio.');
         }
       });
 
@@ -678,6 +872,9 @@ function initServiceForm() {
 }
 
 // ── Clientes ──────────────────────────────────────
+// Clients are grouped by phone number (server-side, via a normalized
+// "phoneKey") so the same person appears once even if she used different
+// emails across bookings.
 async function loadClients() {
   const list = $('#clients-list');
   list.innerHTML = '<p class="agenda-empty">Cargando…</p>';
@@ -699,9 +896,9 @@ function renderClientsList(clients) {
   list.innerHTML = clients
     .map(
       (c) => `
-    <button type="button" class="client-row" data-email="${c.email}">
+    <button type="button" class="client-row" data-phone-key="${c.phoneKey}">
       <span class="client-row__name">${c.name}</span>
-      <span class="client-row__meta">${c.email}${c.phone ? ' · ' + c.phone : ''}</span>
+      <span class="client-row__meta">${c.phone}${c.emails.length ? ' · ' + c.emails[0] + (c.emails.length > 1 ? ` (+${c.emails.length - 1})` : '') : ''}</span>
     </button>
   `
     )
@@ -710,7 +907,7 @@ function renderClientsList(clients) {
     btn.addEventListener('click', () => {
       $$('.client-row', list).forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-      selectClient(btn.dataset.email);
+      selectClient(btn.dataset.phoneKey);
     });
   });
 }
@@ -720,7 +917,7 @@ function initClientSearch() {
     const q = e.target.value.trim().toLowerCase();
     const filtered = !q
       ? clientsCache
-      : clientsCache.filter((c) => [c.name, c.email, c.phone].filter(Boolean).some((v) => v.toLowerCase().includes(q)));
+      : clientsCache.filter((c) => [c.name, c.phone, ...c.emails].filter(Boolean).some((v) => v.toLowerCase().includes(q)));
     renderClientsList(filtered);
   });
 }
@@ -746,15 +943,16 @@ function renderClientApptList(container, appointments, isUpcoming) {
     .join('');
 }
 
-async function selectClient(email) {
+async function selectClient(phoneKey) {
   const detail = $('#client-detail');
   detail.innerHTML = '<p class="agenda-empty">Cargando…</p>';
   try {
-    const { client, upcoming, past } = await apiFetch(`/api/admin/dashboard?view=clients&email=${encodeURIComponent(email)}`);
+    const { client, upcoming, past } = await apiFetch(`/api/admin/dashboard?view=clients&phone=${encodeURIComponent(phoneKey)}`);
+    const emailsLine = client.emails.length > 1 ? `Emails: ${client.emails.join(', ')}` : client.email || '';
     detail.innerHTML = `
       <div class="client-detail__head">
         <h3>${client.name}</h3>
-        <p class="client-detail__contact">${client.email}${client.phone ? ' · ' + client.phone : ''}</p>
+        <p class="client-detail__contact">${client.phone}${emailsLine ? ' · ' + emailsLine : ''}</p>
       </div>
       <div class="client-detail__section">
         <h4>Próximas citas</h4>
@@ -803,15 +1001,15 @@ async function selectClient(email) {
   }
 }
 
-async function openClientPanel(email) {
+async function openClientPanel(phoneKey) {
   switchPanel('clientes');
   if (!clientsCache.length) await loadClients();
-  const btn = $$('.client-row').find((b) => b.dataset.email === email);
+  const btn = $$('.client-row').find((b) => b.dataset.phoneKey === phoneKey);
   if (btn) {
     $$('.client-row').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
   }
-  selectClient(email);
+  selectClient(phoneKey);
 }
 
 // ── Notificaciones ────────────────────────────────
@@ -901,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuth();
   initSidebar();
   initAgendaNav();
+  initAddAppointmentModal();
   initOpenSlotForm();
   initServiceForm();
   initClientSearch();
