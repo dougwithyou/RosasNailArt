@@ -1,6 +1,7 @@
 /**
  * ROSAS NAILS ART — Booking wizard
  */
+(function () {
 'use strict';
 
 const $ = (s, ctx = document) => ctx.querySelector(s);
@@ -339,3 +340,5 @@ function initBookingWizard() {
 }
 
 document.addEventListener('DOMContentLoaded', initBookingWizard);
+
+})();
