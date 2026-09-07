@@ -567,23 +567,46 @@ async function loadOpenSlots() {
 }
 
 function initOpenSlotForm() {
-  $('#openslot-form').addEventListener('submit', async (e) => {
+  const form = $('#openslot-form');
+  const today = dateKey(new Date());
+  form.fromDate.min = today;
+  form.toDate.min = today;
+  form.fromDate.value = today;
+  form.toDate.value = today;
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = $('#openslot-error');
     errorEl.hidden = true;
-    const form = e.target;
+
+    const daysOfWeek = $$('input[name="dow"]:checked', form).map((el) => parseInt(el.value, 10));
+    if (!daysOfWeek.length) {
+      errorEl.textContent = 'Selecciona al menos un día de la semana.';
+      errorEl.hidden = false;
+      return;
+    }
+    if (form.fromDate.value > form.toDate.value) {
+      errorEl.textContent = '"Desde" no puede ser después de "Hasta".';
+      errorEl.hidden = false;
+      return;
+    }
+
     try {
-      await apiFetch('/api/admin/open-slots', {
+      const result = await apiFetch('/api/admin/open-slots', {
         method: 'POST',
         body: JSON.stringify({
-          date: form.date.value,
+          fromDate: form.fromDate.value,
+          toDate: form.toDate.value,
+          daysOfWeek,
           startTime: form.startTime.value,
           endTime: form.endTime.value,
         }),
       });
-      form.reset();
-      form.startTime.value = '09:30';
-      form.endTime.value = '18:30';
+      if (!result.created) {
+        errorEl.textContent = 'Esos horarios ya estaban abiertos.';
+        errorEl.hidden = false;
+        return;
+      }
       loadOpenSlots();
     } catch (err) {
       errorEl.textContent = err.message || 'No se pudo abrir el horario.';

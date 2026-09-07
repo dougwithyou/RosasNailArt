@@ -149,21 +149,40 @@
         <!-- HORARIOS -->
         <section class="admin-panel" data-tab-panel="horarios" hidden>
           <div class="panel-card">
-            <form id="openslot-form" class="admin-form admin-form--inline">
-              <label>
-                Fecha
-                <input type="date" name="date" required>
-              </label>
-              <label>
-                Desde
-                <input type="time" name="startTime" value="09:30" required>
-              </label>
-              <label>
-                Hasta
-                <input type="time" name="endTime" value="18:30" required>
-              </label>
-              <button type="submit" class="btn btn--primary">Abrir horario</button>
+            <form id="openslot-form" class="admin-form">
+              <div class="openslot-days">
+                <span class="openslot-days__label">Días de la semana</span>
+                <div class="day-toggle-group">
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="1" checked><span>Lun</span></label>
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="2" checked><span>Mar</span></label>
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="3" checked><span>Mié</span></label>
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="4" checked><span>Jue</span></label>
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="5" checked><span>Vie</span></label>
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="6" checked><span>Sáb</span></label>
+                  <label class="day-toggle"><input type="checkbox" name="dow" value="0" checked><span>Dom</span></label>
+                </div>
+              </div>
+              <div class="admin-form admin-form--inline">
+                <label>
+                  Desde (fecha)
+                  <input type="date" name="fromDate" required>
+                </label>
+                <label>
+                  Hasta (fecha)
+                  <input type="date" name="toDate" required>
+                </label>
+                <label>
+                  Desde (hora)
+                  <input type="time" name="startTime" value="09:30" required>
+                </label>
+                <label>
+                  Hasta (hora)
+                  <input type="time" name="endTime" value="18:30" required>
+                </label>
+                <button type="submit" class="btn btn--primary">Abrir horarios</button>
+              </div>
             </form>
+            <p class="admin-note">Para un solo día, pon la misma fecha en "Desde" y "Hasta". Para varias semanas, marca solo los días que trabajas (por ejemplo Martes a Viernes) y elige el rango de fechas.</p>
             <p class="admin-error" id="openslot-error" hidden></p>
             <div id="openslots-list" class="openslots-list"></div>
           </div>
