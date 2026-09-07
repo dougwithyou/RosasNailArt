@@ -1,6 +1,7 @@
 /**
  * ROSAS NAILS ART — Admin panel (Maribel)
  */
+(function () {
 'use strict';
 
 const $ = (s, ctx = document) => ctx.querySelector(s);
@@ -520,3 +521,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initBroadcast();
   loadBroadcastCount();
 });
+
+})();
