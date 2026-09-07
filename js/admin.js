@@ -13,20 +13,35 @@ const SUPABASE_ANON_KEY =
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const TIMEZONE = 'America/New_York';
 const DOW_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DOW_LABELS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const STATUS_LABELS = { confirmed: 'Confirmada', pending_payment: 'Pendiente de pago' };
+const HOUR_HEIGHT = 56; // px per hour in the weekly grid — must match css/admin.css's repeating-linear-gradient
 
 const MONTH_LABELS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+const PANEL_TITLES = {
+  inicio: 'Inicio',
+  agenda: 'Agenda',
+  horarios: 'Horarios',
+  servicios: 'Servicios',
+  clientes: 'Clientes',
+  notificaciones: 'Notificaciones',
+};
+
 const state = {
   weekStart: startOfWeek(new Date()),
   viewMode: 'week',
   monthCursor: startOfMonth(new Date()),
   selectedDay: null,
+  currentPanel: 'inicio',
 };
+
+let clientsCache = [];
 
 function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -43,6 +58,21 @@ function dateKey(d) {
 }
 function money(cents) {
   return `$${(cents / 100).toFixed(2)}`;
+}
+function timeToMinutes(str) {
+  const [h, m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+// Wall-clock minutes-since-midnight for a UTC instant, as seen in TIMEZONE —
+// needed because appointments are timestamptz but open_slots are stored as
+// plain local wall-clock times, so both must line up on the same clock.
+function easternMinutesOfDay(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(date);
+  const hour = Number(parts.find((p) => p.type === 'hour').value) % 24;
+  const minute = Number(parts.find((p) => p.type === 'minute').value);
+  return hour * 60 + minute;
 }
 
 async function authHeader() {
@@ -67,6 +97,7 @@ function showLoggedOut() {
 function showLoggedIn() {
   $('#admin-login').hidden = true;
   $('#admin-shell').hidden = false;
+  loadStats();
   loadAgenda();
   loadOpenSlots();
   loadServices();
@@ -100,16 +131,64 @@ async function initAuth() {
   $('#btn-logout').addEventListener('click', () => sb.auth.signOut());
 }
 
-// ── Tabs ──────────────────────────────────────────
-function initTabs() {
-  $$('.admin-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      $$('.admin-tab').forEach((t) => t.classList.remove('active'));
-      tab.classList.add('active');
-      const name = tab.dataset.tab;
-      $$('[data-tab-panel]').forEach((p) => (p.hidden = p.dataset.tabPanel !== name));
-    });
+// ── Sidebar navigation ─────────────────────────────
+function switchPanel(name) {
+  state.currentPanel = name;
+  $$('.sidebar__link').forEach((l) => l.classList.toggle('active', l.dataset.panelLink === name));
+  $$('[data-tab-panel]').forEach((p) => (p.hidden = p.dataset.tabPanel !== name));
+  $('#topbar-title').textContent = PANEL_TITLES[name] || '';
+  closeWeekPopover();
+
+  if (name === 'inicio') loadStats();
+  if (name === 'clientes' && !clientsCache.length) loadClients();
+}
+
+function initSidebar() {
+  $$('.sidebar__link').forEach((link) => {
+    link.addEventListener('click', () => switchPanel(link.dataset.panelLink));
   });
+}
+
+// ── Inicio (stats) ─────────────────────────────────
+async function loadStats() {
+  const wrap = $('#top-clients-list');
+  wrap.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+
+  try {
+    const stats = await apiFetch('/api/admin/stats');
+    $('#stat-week-count').textContent = stats.weekApptCount;
+    $('#stat-week-deposit').textContent = money(stats.weekDepositTotalCents);
+    $('#stat-month-deposit').textContent = money(stats.monthDepositTotalCents);
+
+    if (stats.nextAppointment) {
+      const when = new Date(stats.nextAppointment.startAt).toLocaleString('es-US', {
+        weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE,
+      });
+      $('#stat-next-appt').innerHTML = `<b>${stats.nextAppointment.clientName}</b><br>${stats.nextAppointment.serviceLabel}<br>${when}`;
+    } else {
+      $('#stat-next-appt').textContent = 'No hay citas próximas.';
+    }
+
+    if (!stats.topClients.length) {
+      wrap.innerHTML = '<p class="agenda-empty">Todavía no hay clientas.</p>';
+    } else {
+      wrap.innerHTML = stats.topClients
+        .map(
+          (c) => `
+        <button type="button" class="top-client-row" data-email="${c.email}">
+          <span>${c.name}</span>
+          <span class="top-client-row__visits">${c.visits} visita${c.visits === 1 ? '' : 's'}</span>
+        </button>
+      `
+        )
+        .join('');
+      $$('.top-client-row', wrap).forEach((btn) => {
+        btn.addEventListener('click', () => openClientPanel(btn.dataset.email));
+      });
+    }
+  } catch (err) {
+    wrap.innerHTML = '<p class="agenda-empty">No se pudieron cargar las métricas.</p>';
+  }
 }
 
 // ── Agenda ────────────────────────────────────────
@@ -137,7 +216,7 @@ function renderDayCard(day, dayAppointments, dayOpenSlots) {
     section.appendChild(empty);
   } else {
     dayAppointments.forEach((a) => {
-      const time = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+      const time = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
       const item = document.createElement('div');
       item.className = 'agenda-item';
       item.innerHTML = `
@@ -175,40 +254,187 @@ async function loadAgenda() {
   return loadWeekView();
 }
 
+function computeGridHours(openSlots) {
+  if (!openSlots.length) return { startHour: 9, endHour: 19 };
+  let minStart = 24 * 60;
+  let maxEnd = 0;
+  openSlots.forEach((s) => {
+    minStart = Math.min(minStart, timeToMinutes(s.start_time));
+    maxEnd = Math.max(maxEnd, timeToMinutes(s.end_time));
+  });
+  return { startHour: Math.floor(minStart / 60), endHour: Math.ceil(maxEnd / 60) };
+}
+
+function formatHourLabel(hour) {
+  const h = hour % 24;
+  const period = h < 12 ? 'am' : 'pm';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}${period}`;
+}
+
+function renderWeekGrid(weekStart, appointments, openSlots) {
+  const grid = $('#agenda-week-grid');
+  grid.innerHTML = '';
+
+  const { startHour, endHour } = computeGridHours(openSlots);
+  const gridStartMin = startHour * 60;
+  const bodyHeight = (endHour - startHour) * HOUR_HEIGHT;
+
+  const header = document.createElement('div');
+  header.className = 'week-grid__header';
+  const todayKey = dateKey(new Date());
+  let headerHtml = '<div class="week-grid__corner"></div>';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    const isToday = dateKey(d) === todayKey;
+    headerHtml += `<div class="week-grid__daylabel ${isToday ? 'is-today' : ''}"><span>${DOW_LABELS_SHORT[d.getDay()]}</span><b>${d.getDate()}</b></div>`;
+  }
+  header.innerHTML = headerHtml;
+  grid.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'week-grid__body';
+
+  const times = document.createElement('div');
+  times.className = 'week-grid__times';
+  times.style.height = `${bodyHeight}px`;
+  for (let h = startHour; h < endHour; h++) {
+    const lbl = document.createElement('div');
+    lbl.className = 'week-grid__time';
+    lbl.style.height = `${HOUR_HEIGHT}px`;
+    lbl.textContent = formatHourLabel(h);
+    times.appendChild(lbl);
+  }
+  body.appendChild(times);
+
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(weekStart);
+    day.setDate(day.getDate() + i);
+    const key = dateKey(day);
+
+    const col = document.createElement('div');
+    col.className = 'week-grid__day';
+    col.style.height = `${bodyHeight}px`;
+
+    openSlots
+      .filter((s) => s.date === key)
+      .forEach((s) => {
+        const startMin = timeToMinutes(s.start_time);
+        const endMin = timeToMinutes(s.end_time);
+        const top = Math.max((startMin - gridStartMin) * (HOUR_HEIGHT / 60), 0);
+        const height = Math.max((endMin - startMin) * (HOUR_HEIGHT / 60), 4);
+        const el = document.createElement('div');
+        el.className = 'week-slot week-slot--open';
+        el.style.top = `${top}px`;
+        el.style.height = `${height}px`;
+        el.textContent = `${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}`;
+        col.appendChild(el);
+      });
+
+    appointments
+      .filter((a) => a.start_at.slice(0, 10) === key)
+      .forEach((a) => {
+        const startMin = easternMinutesOfDay(new Date(a.start_at));
+        const endMin = easternMinutesOfDay(new Date(a.end_at));
+        const top = Math.max((startMin - gridStartMin) * (HOUR_HEIGHT / 60), 0);
+        const height = Math.max((endMin - startMin) * (HOUR_HEIGHT / 60), 18);
+        const timeLabel = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
+
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = `week-slot week-slot--appt status-${a.status}`;
+        el.style.top = `${top}px`;
+        el.style.height = `${height}px`;
+        el.innerHTML = `<b>${timeLabel}</b> ${a.client_name}`;
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openWeekPopover(a, el);
+        });
+        col.appendChild(el);
+      });
+
+    body.appendChild(col);
+  }
+
+  grid.appendChild(body);
+}
+
+function openWeekPopover(a, anchorEl) {
+  const pop = $('#week-popover');
+  const body = $('#week-popover-body');
+  const time = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
+
+  body.innerHTML = `
+    <h4>${a.client_name}</h4>
+    <p class="week-popover__meta">
+      ${a.service_label}<br>
+      ${time} · ${a.client_phone}<br>
+      ${money(a.price_cents)} (depósito ${money(a.deposit_cents)}) ·
+      <span class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</span>
+    </p>
+    <div class="week-popover__actions">
+      <button type="button" data-notify="reschedule">Reagendar</button>
+      <button type="button" data-notify="late">Voy tarde</button>
+      <button type="button" data-notify="custom">Mensaje</button>
+    </div>
+  `;
+  $$('[data-notify]', body).forEach((btn) => {
+    btn.addEventListener('click', () => {
+      pop.hidden = true;
+      sendAppointmentNotice(a, btn.dataset.notify);
+    });
+  });
+
+  const rect = anchorEl.getBoundingClientRect();
+  pop.hidden = false;
+  const popRect = pop.getBoundingClientRect();
+  const top = Math.min(rect.top, window.innerHeight - popRect.height - 8);
+  const left = Math.min(rect.right + 8, window.innerWidth - popRect.width - 8);
+  pop.style.top = `${Math.max(top, 8)}px`;
+  pop.style.left = `${Math.max(left, 8)}px`;
+}
+
+function closeWeekPopover() {
+  const pop = $('#week-popover');
+  if (pop) pop.hidden = true;
+}
+
+document.addEventListener('click', (e) => {
+  const pop = $('#week-popover');
+  if (!pop || pop.hidden) return;
+  if (pop.contains(e.target) || e.target.closest('.week-slot--appt')) return;
+  pop.hidden = true;
+});
+
 async function loadWeekView() {
   $('#agenda-month-grid').hidden = true;
-  $('#agenda-list').hidden = false;
+  $('#agenda-list').hidden = true;
+  $('#agenda-week-grid').hidden = false;
 
   const weekEnd = new Date(state.weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
   $('#agenda-label').textContent = `${dateKey(state.weekStart)} — ${dateKey(weekEnd)}`;
 
-  const list = $('#agenda-list');
-  list.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+  const grid = $('#agenda-week-grid');
+  grid.innerHTML = '<p class="agenda-empty">Cargando…</p>';
 
   try {
     const toDate = new Date(weekEnd);
     toDate.setHours(23, 59, 59, 999);
     const { appointments, openSlots } = await fetchRange(state.weekStart.toISOString(), toDate.toISOString());
-
-    list.innerHTML = '';
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(state.weekStart);
-      day.setDate(day.getDate() + i);
-      const key = dateKey(day);
-      const dayAppointments = appointments.filter((a) => a.start_at.slice(0, 10) === key);
-      const dayOpenSlots = openSlots.filter((s) => s.date === key);
-      list.appendChild(renderDayCard(day, dayAppointments, dayOpenSlots));
-    }
+    renderWeekGrid(state.weekStart, appointments, openSlots);
   } catch (err) {
-    list.innerHTML = '<p class="agenda-empty">No se pudo cargar la agenda.</p>';
+    grid.innerHTML = '<p class="agenda-empty">No se pudo cargar la agenda.</p>';
   }
 }
 
 async function loadMonthView() {
   const grid = $('#agenda-month-grid');
   const list = $('#agenda-list');
+  $('#agenda-week-grid').hidden = true;
   grid.hidden = false;
+  list.hidden = false;
 
   $('#agenda-label').textContent = `${MONTH_LABELS[state.monthCursor.getMonth()]} ${state.monthCursor.getFullYear()}`;
 
@@ -232,7 +458,7 @@ async function loadMonthView() {
     });
 
     grid.innerHTML = '';
-    ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].forEach((d) => {
+    DOW_LABELS_SHORT.forEach((d) => {
       const el = document.createElement('div');
       el.className = 'cal-dow';
       el.textContent = d;
@@ -417,7 +643,6 @@ function initServiceForm() {
           name: form.name.value,
           durationMinutes: parseInt(form.durationMinutes.value, 10),
           priceCents: Math.round(parseFloat(form.price.value) * 100),
-          depositCents: Math.round(parseFloat(form.deposit.value) * 100),
           category: form.category.value,
         }),
       });
@@ -427,6 +652,143 @@ function initServiceForm() {
       alert('No se pudo agregar el servicio.');
     }
   });
+}
+
+// ── Clientes ──────────────────────────────────────
+async function loadClients() {
+  const list = $('#clients-list');
+  list.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+  try {
+    const { clients } = await apiFetch('/api/admin/clients');
+    clientsCache = clients;
+    renderClientsList(clients);
+  } catch (err) {
+    list.innerHTML = '<p class="agenda-empty">No se pudieron cargar las clientas.</p>';
+  }
+}
+
+function renderClientsList(clients) {
+  const list = $('#clients-list');
+  if (!clients.length) {
+    list.innerHTML = '<p class="agenda-empty">Todavía no hay clientas.</p>';
+    return;
+  }
+  list.innerHTML = clients
+    .map(
+      (c) => `
+    <button type="button" class="client-row" data-email="${c.email}">
+      <span class="client-row__name">${c.name}</span>
+      <span class="client-row__meta">${c.email}${c.phone ? ' · ' + c.phone : ''}</span>
+    </button>
+  `
+    )
+    .join('');
+  $$('.client-row', list).forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('.client-row', list).forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectClient(btn.dataset.email);
+    });
+  });
+}
+
+function initClientSearch() {
+  $('#client-search').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const filtered = !q
+      ? clientsCache
+      : clientsCache.filter((c) => [c.name, c.email, c.phone].filter(Boolean).some((v) => v.toLowerCase().includes(q)));
+    renderClientsList(filtered);
+  });
+}
+
+function renderClientApptList(container, appointments, isUpcoming) {
+  if (!appointments.length) {
+    container.innerHTML = `<p class="agenda-empty">${isUpcoming ? 'Sin citas próximas.' : 'Sin citas anteriores.'}</p>`;
+    return;
+  }
+  container.innerHTML = appointments
+    .map((a) => {
+      const when = new Date(a.start_at).toLocaleString('es-US', {
+        weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE,
+      });
+      return `
+      <div class="agenda-item">
+        <div class="agenda-item__time">${when}</div>
+        <div class="agenda-item__meta"><b>${a.service_label}</b><br>${money(a.price_cents)}</div>
+        <div class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</div>
+      </div>
+    `;
+    })
+    .join('');
+}
+
+async function selectClient(email) {
+  const detail = $('#client-detail');
+  detail.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+  try {
+    const { client, upcoming, past } = await apiFetch(`/api/admin/clients?email=${encodeURIComponent(email)}`);
+    detail.innerHTML = `
+      <div class="client-detail__head">
+        <h3>${client.name}</h3>
+        <p class="client-detail__contact">${client.email}${client.phone ? ' · ' + client.phone : ''}</p>
+      </div>
+      <div class="client-detail__section">
+        <h4>Próximas citas</h4>
+        <div class="client-appt-list" id="client-upcoming"></div>
+      </div>
+      <div class="client-detail__section">
+        <h4>Últimas citas</h4>
+        <div class="client-appt-list" id="client-past"></div>
+      </div>
+      <div class="client-detail__section">
+        <h4>Enviar mensaje</h4>
+        <form id="client-message-form" class="admin-form">
+          <textarea name="message" rows="4" placeholder="Escribe un mensaje para ${client.name}…" required></textarea>
+          <p class="admin-error" id="client-message-error" hidden></p>
+          <button type="submit" class="btn btn--primary">Enviar por email</button>
+        </form>
+      </div>
+    `;
+    renderClientApptList($('#client-upcoming'), upcoming, true);
+    renderClientApptList($('#client-past'), [...past].reverse(), false);
+
+    $('#client-message-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = $('#client-message-error');
+      errorEl.hidden = true;
+      const form = e.target;
+      try {
+        await apiFetch('/api/admin/notify', {
+          method: 'POST',
+          body: JSON.stringify({
+            clientEmail: client.email,
+            clientName: client.name,
+            type: 'custom',
+            customMessage: form.message.value,
+          }),
+        });
+        alert('Mensaje enviado.');
+        form.reset();
+      } catch (err) {
+        errorEl.textContent = err.message || 'No se pudo enviar el mensaje.';
+        errorEl.hidden = false;
+      }
+    });
+  } catch (err) {
+    detail.innerHTML = '<p class="agenda-empty">No se pudo cargar la ficha de la clienta.</p>';
+  }
+}
+
+async function openClientPanel(email) {
+  switchPanel('clientes');
+  if (!clientsCache.length) await loadClients();
+  const btn = $$('.client-row').find((b) => b.dataset.email === email);
+  if (btn) {
+    $$('.client-row').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  selectClient(email);
 }
 
 // ── Notificaciones ────────────────────────────────
@@ -514,12 +876,15 @@ function initBroadcast() {
 document.addEventListener('DOMContentLoaded', () => {
   if (!$('.admin-page')) return;
   initAuth();
-  initTabs();
+  initSidebar();
   initAgendaNav();
   initOpenSlotForm();
   initServiceForm();
+  initClientSearch();
   initBroadcast();
   loadBroadcastCount();
+
+  $('#week-popover-close')?.addEventListener('click', closeWeekPopover);
 });
 
 })();
