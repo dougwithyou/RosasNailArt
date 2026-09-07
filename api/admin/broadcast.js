@@ -60,6 +60,7 @@ module.exports = async function handler(req, res) {
       }
       res.status(200).json({ sent: true, recipientCount: recipients.length });
     } catch (err) {
+      console.error('Failed to send broadcast', err);
       res.status(500).json({ error: 'No se pudo enviar el anuncio' });
     }
     return;

@@ -81,7 +81,9 @@ module.exports = async function handler(req, res) {
       }),
     ]);
   } catch (emailErr) {
-    // Appointment is already confirmed in the DB; email failure shouldn't fail the webhook.
+    // Appointment is already confirmed in the DB; email failure shouldn't fail the webhook,
+    // but it must be visible in Vercel logs — this was previously swallowed silently.
+    console.error('Failed to send confirmation emails for appointment', appointmentId, emailErr);
   }
 
   res.status(200).json({ received: true });
