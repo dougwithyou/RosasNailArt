@@ -18,156 +18,245 @@
 <body>
 
 <main class="admin-page">
-  <div class="container container--narrow">
 
-    <!-- LOGIN -->
-    <section class="admin-login" id="admin-login">
-      <div class="admin-login__card">
-        <div class="nav-logo" style="justify-content:center;margin-bottom:var(--space-6)">
-          <div class="nav-logo__mark">R</div>
-          <div class="nav-logo__text">
-            <span class="nav-logo__name">Rosas Nails Art</span>
-            <span class="nav-logo__tagline">Panel de Maribel</span>
-          </div>
-        </div>
-
-        <form id="login-form" class="admin-form">
-          <label>
-            Email
-            <input type="email" name="email" required autocomplete="username">
-          </label>
-          <label>
-            Contraseña
-            <input type="password" name="password" required autocomplete="current-password">
-          </label>
-          <p class="admin-error" id="login-error" hidden></p>
-          <button type="submit" class="btn btn--primary">Iniciar sesión</button>
-        </form>
+  <!-- LOGIN -->
+  <section class="admin-login" id="admin-login">
+    <div class="admin-login__card">
+      <div class="brand-mark">
+        <span class="brand-mark__glyph">R</span>
+        <span class="brand-mark__text">
+          <span class="brand-mark__name">Rosas Nails Art</span>
+          <span class="brand-mark__tagline">Panel de Maribel</span>
+        </span>
       </div>
-    </section>
 
-    <!-- ADMIN SHELL -->
-    <section class="admin-shell" id="admin-shell" hidden>
-      <header class="admin-header">
-        <div class="nav-logo">
-          <div class="nav-logo__mark">R</div>
-          <div class="nav-logo__text">
-            <span class="nav-logo__name">Rosas Nails Art</span>
-            <span class="nav-logo__tagline">Panel de Maribel</span>
-          </div>
-        </div>
-        <button type="button" class="btn btn--secondary" id="btn-logout">Cerrar sesión</button>
-      </header>
+      <form id="login-form" class="admin-form">
+        <label>
+          Email
+          <input type="email" name="email" required autocomplete="username">
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <p class="admin-error" id="login-error" hidden></p>
+        <button type="submit" class="btn btn--primary">Iniciar sesión</button>
+      </form>
+    </div>
+  </section>
 
-      <nav class="admin-tabs">
-        <button type="button" class="admin-tab active" data-tab="agenda">Agenda</button>
-        <button type="button" class="admin-tab" data-tab="horarios">Horarios</button>
-        <button type="button" class="admin-tab" data-tab="servicios">Servicios</button>
-        <button type="button" class="admin-tab" data-tab="notificaciones">Notificaciones</button>
+  <!-- ADMIN SHELL -->
+  <div class="admin-app" id="admin-shell" hidden>
+
+    <aside class="sidebar">
+      <div class="brand-mark sidebar__brand">
+        <span class="brand-mark__glyph">R</span>
+        <span class="brand-mark__text">
+          <span class="brand-mark__name">Rosas Nails Art</span>
+          <span class="brand-mark__tagline">Panel de Maribel</span>
+        </span>
+      </div>
+
+      <nav class="sidebar__nav">
+        <button type="button" class="sidebar__link active" data-panel-link="inicio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg>
+          <span>Inicio</span>
+        </button>
+        <button type="button" class="sidebar__link" data-panel-link="agenda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/></svg>
+          <span>Agenda</span>
+        </button>
+        <button type="button" class="sidebar__link" data-panel-link="horarios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+          <span>Horarios</span>
+        </button>
+        <button type="button" class="sidebar__link" data-panel-link="servicios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c.6 3 2 4.9 5 5.5-3 .6-4.4 2.5-5 5.5-.6-3-2-4.9-5-5.5 3-.6 4.4-2.5 5-5.5Z"/><path d="M18.5 15c.3 1.5 1 2.2 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.3 2.2-1 2.5-2.5Z"/></svg>
+          <span>Servicios</span>
+        </button>
+        <button type="button" class="sidebar__link" data-panel-link="clientes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 20v-1c0-2.5 2.2-4.3 6-4.3s6 1.8 6 4.3v1"/><path d="M16 8.7a3 3 0 1 1 0-5.9"/><path d="M15.5 14.2c2.7.5 4.5 2 4.5 4.4v1.4"/></svg>
+          <span>Clientes</span>
+        </button>
+        <button type="button" class="sidebar__link" data-panel-link="notificaciones">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+          <span>Notificaciones</span>
+        </button>
       </nav>
 
-      <!-- AGENDA -->
-      <section class="admin-panel" data-tab-panel="agenda">
-        <div class="agenda-view-toggle">
-          <button type="button" class="agenda-view-btn active" data-view="week">Semana</button>
-          <button type="button" class="agenda-view-btn" data-view="month">Mes</button>
-        </div>
+      <button type="button" class="sidebar__logout" id="btn-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9"/><path d="M16 16l4.5-4.5L16 7"/><path d="M20.2 11.5H10"/></svg>
+        <span>Cerrar sesión</span>
+      </button>
+    </aside>
 
-        <div class="admin-panel__head">
-          <button type="button" class="calendar-nav__btn" id="agenda-prev" aria-label="Anterior">‹</button>
-          <h3 id="agenda-label"></h3>
-          <button type="button" class="calendar-nav__btn" id="agenda-next" aria-label="Siguiente">›</button>
-        </div>
+    <div class="admin-main">
+      <header class="topbar">
+        <h1 class="topbar__title" id="topbar-title">Inicio</h1>
+      </header>
 
-        <!-- Month view: calendar grid with open/booked indicators -->
-        <div class="calendar-grid" id="agenda-month-grid" hidden></div>
+      <div class="admin-content">
 
-        <div id="agenda-list" class="agenda-list"></div>
-      </section>
+        <!-- INICIO -->
+        <section class="admin-panel" data-tab-panel="inicio">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-card__label">Citas esta semana</span>
+              <span class="stat-card__value" id="stat-week-count">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-card__label">Depósitos esta semana</span>
+              <span class="stat-card__value" id="stat-week-deposit">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-card__label">Depósitos este mes</span>
+              <span class="stat-card__value" id="stat-month-deposit">—</span>
+            </div>
+            <div class="stat-card stat-card--wide">
+              <span class="stat-card__label">Próxima cita</span>
+              <div class="stat-card__next" id="stat-next-appt">—</div>
+            </div>
+          </div>
 
-      <!-- HORARIOS -->
-      <section class="admin-panel" data-tab-panel="horarios" hidden>
-        <form id="openslot-form" class="admin-form admin-form--inline">
-          <label>
-            Fecha
-            <input type="date" name="date" required>
-          </label>
-          <label>
-            Desde
-            <input type="time" name="startTime" value="09:30" required>
-          </label>
-          <label>
-            Hasta
-            <input type="time" name="endTime" value="18:30" required>
-          </label>
-          <button type="submit" class="btn btn--primary">Abrir horario</button>
-        </form>
-        <p class="admin-error" id="openslot-error" hidden></p>
-        <div id="openslots-list" class="openslots-list"></div>
-      </section>
+          <div class="panel-card">
+            <h3>Clientas frecuentes</h3>
+            <div id="top-clients-list" class="top-clients-list"></div>
+          </div>
+        </section>
 
-      <!-- SERVICIOS -->
-      <section class="admin-panel" data-tab-panel="servicios" hidden>
-        <p class="admin-note">El depósito es fijo ($45 por cita, sin importar el servicio) — no se edita por servicio.</p>
-        <div id="services-list" class="services-list"></div>
+        <!-- AGENDA -->
+        <section class="admin-panel" data-tab-panel="agenda" hidden>
+          <div class="agenda-view-toggle">
+            <button type="button" class="agenda-view-btn active" data-view="week">Semana</button>
+            <button type="button" class="agenda-view-btn" data-view="month">Mes</button>
+          </div>
 
-        <details class="admin-add-service">
-          <summary>+ Agregar servicio nuevo</summary>
-          <form id="service-form" class="admin-form admin-form--inline">
-            <label>
-              Nombre
-              <input type="text" name="name" required>
-            </label>
-            <label>
-              Duración (min)
-              <input type="number" name="durationMinutes" min="1" required>
-            </label>
-            <label>
-              Precio ($)
-              <input type="number" name="price" min="0" step="0.01" required>
-            </label>
-            <label>
-              Tipo
-              <select name="category">
-                <option value="service">Servicio</option>
-                <option value="addon">Add-on</option>
-              </select>
-            </label>
-            <button type="submit" class="btn btn--primary">Agregar</button>
-          </form>
-        </details>
-      </section>
+          <div class="admin-panel__head">
+            <button type="button" class="calendar-nav__btn" id="agenda-prev" aria-label="Anterior">‹</button>
+            <h3 id="agenda-label"></h3>
+            <button type="button" class="calendar-nav__btn" id="agenda-next" aria-label="Siguiente">›</button>
+          </div>
 
-      <!-- NOTIFICACIONES -->
-      <section class="admin-panel" data-tab-panel="notificaciones" hidden>
-        <h3>Anuncio para todas las clientas</h3>
-        <p class="admin-note" id="broadcast-count">Calculando destinatarias…</p>
+          <!-- Month view: calendar grid with open/booked indicators -->
+          <div class="calendar-grid" id="agenda-month-grid" hidden></div>
 
-        <form id="broadcast-form" class="admin-form">
-          <label>
-            Plantilla rápida
-            <select id="broadcast-template">
-              <option value="">Personalizado</option>
-              <option value="promo">Promoción</option>
-              <option value="new-hours">Nuevos horarios disponibles</option>
-              <option value="vacation">Cerrado por vacaciones</option>
-            </select>
-          </label>
-          <label>
-            Asunto
-            <input type="text" name="subject" required>
-          </label>
-          <label>
-            Mensaje
-            <textarea name="message" rows="5" required></textarea>
-          </label>
-          <p class="admin-error" id="broadcast-error" hidden></p>
-          <button type="submit" class="btn btn--primary">Enviar a todas las clientas</button>
-        </form>
-      </section>
-    </section>
+          <!-- Week view: hour-by-hour grid -->
+          <div class="week-grid" id="agenda-week-grid"></div>
+
+          <div id="agenda-list" class="agenda-list" hidden></div>
+        </section>
+
+        <!-- HORARIOS -->
+        <section class="admin-panel" data-tab-panel="horarios" hidden>
+          <div class="panel-card">
+            <form id="openslot-form" class="admin-form admin-form--inline">
+              <label>
+                Fecha
+                <input type="date" name="date" required>
+              </label>
+              <label>
+                Desde
+                <input type="time" name="startTime" value="09:30" required>
+              </label>
+              <label>
+                Hasta
+                <input type="time" name="endTime" value="18:30" required>
+              </label>
+              <button type="submit" class="btn btn--primary">Abrir horario</button>
+            </form>
+            <p class="admin-error" id="openslot-error" hidden></p>
+            <div id="openslots-list" class="openslots-list"></div>
+          </div>
+        </section>
+
+        <!-- SERVICIOS -->
+        <section class="admin-panel" data-tab-panel="servicios" hidden>
+          <div class="panel-card">
+            <p class="admin-note">El depósito es fijo ($45 por cita, sin importar el servicio) — no se edita por servicio.</p>
+            <div id="services-list" class="services-list"></div>
+
+            <details class="admin-add-service">
+              <summary>+ Agregar servicio nuevo</summary>
+              <form id="service-form" class="admin-form admin-form--inline">
+                <label>
+                  Nombre
+                  <input type="text" name="name" required>
+                </label>
+                <label>
+                  Duración (min)
+                  <input type="number" name="durationMinutes" min="1" required>
+                </label>
+                <label>
+                  Precio ($)
+                  <input type="number" name="price" min="0" step="0.01" required>
+                </label>
+                <label>
+                  Tipo
+                  <select name="category">
+                    <option value="service">Servicio</option>
+                    <option value="addon">Add-on</option>
+                  </select>
+                </label>
+                <button type="submit" class="btn btn--primary">Agregar</button>
+              </form>
+            </details>
+          </div>
+        </section>
+
+        <!-- CLIENTES -->
+        <section class="admin-panel" data-tab-panel="clientes" hidden>
+          <div class="clients-layout">
+            <div class="clients-list-wrap">
+              <input type="search" id="client-search" class="client-search" placeholder="Buscar por nombre, email o teléfono">
+              <div id="clients-list" class="clients-list"></div>
+            </div>
+            <div class="client-detail panel-card" id="client-detail">
+              <p class="agenda-empty">Selecciona una clienta para ver su ficha.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- NOTIFICACIONES -->
+        <section class="admin-panel" data-tab-panel="notificaciones" hidden>
+          <div class="panel-card">
+            <h3>Anuncio para todas las clientas</h3>
+            <p class="admin-note" id="broadcast-count">Calculando destinatarias…</p>
+
+            <form id="broadcast-form" class="admin-form">
+              <label>
+                Plantilla rápida
+                <select id="broadcast-template">
+                  <option value="">Personalizado</option>
+                  <option value="promo">Promoción</option>
+                  <option value="new-hours">Nuevos horarios disponibles</option>
+                  <option value="vacation">Cerrado por vacaciones</option>
+                </select>
+              </label>
+              <label>
+                Asunto
+                <input type="text" name="subject" required>
+              </label>
+              <label>
+                Mensaje
+                <textarea name="message" rows="5" required></textarea>
+              </label>
+              <p class="admin-error" id="broadcast-error" hidden></p>
+              <button type="submit" class="btn btn--primary">Enviar a todas las clientas</button>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Floating popover for week-grid appointment blocks -->
+    <div class="week-popover" id="week-popover" hidden>
+      <button type="button" class="week-popover__close" id="week-popover-close" aria-label="Cerrar">×</button>
+      <div class="week-popover__body" id="week-popover-body"></div>
+    </div>
 
   </div>
+
 </main>
 
 <script src="js/admin.js"></script>

@@ -13,8 +13,16 @@ module.exports = async function handler(req, res) {
   const user = await requireRole(req, res, ['owner', 'superadmin']);
   if (!user) return;
 
-  const { appointmentId, type, customMessage } = req.body || {};
-  if (!appointmentId || !VALID_TYPES.includes(type)) {
+  const { appointmentId, clientEmail, clientName, type, customMessage } = req.body || {};
+  if (!VALID_TYPES.includes(type)) {
+    res.status(400).json({ error: 'Datos inválidos' });
+    return;
+  }
+  if (!appointmentId && !(clientEmail && clientName)) {
+    res.status(400).json({ error: 'Datos inválidos' });
+    return;
+  }
+  if (!appointmentId && type !== 'custom') {
     res.status(400).json({ error: 'Datos inválidos' });
     return;
   }
@@ -23,28 +31,33 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const { data: appointment, error } = await getSupabase()
-    .from('appointments')
-    .select('client_email, client_name, start_at')
-    .eq('id', appointmentId)
-    .single();
+  let recipient = { email: clientEmail, name: clientName, startAt: null };
 
-  if (error || !appointment) {
-    res.status(404).json({ error: 'Cita no encontrada' });
-    return;
+  if (appointmentId) {
+    const { data: appointment, error } = await getSupabase()
+      .from('appointments')
+      .select('client_email, client_name, start_at')
+      .eq('id', appointmentId)
+      .single();
+
+    if (error || !appointment) {
+      res.status(404).json({ error: 'Cita no encontrada' });
+      return;
+    }
+    recipient = { email: appointment.client_email, name: appointment.client_name, startAt: appointment.start_at };
   }
 
   try {
     await sendAppointmentNotice({
-      to: appointment.client_email,
-      clientName: appointment.client_name,
-      startAt: appointment.start_at,
+      to: recipient.email,
+      clientName: recipient.name,
+      startAt: recipient.startAt,
       type,
       customMessage,
     });
     res.status(200).json({ sent: true });
   } catch (err) {
-    console.error('Failed to send appointment notice for', appointmentId, err);
+    console.error('Failed to send appointment notice for', appointmentId || recipient.email, err);
     res.status(500).json({ error: 'No se pudo enviar el mensaje' });
   }
 };
