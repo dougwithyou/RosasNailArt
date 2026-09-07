@@ -6,10 +6,25 @@ const { TIMEZONE } = require('../../lib/business-hours');
 // Backs both the Inicio (stats) and Clientes tabs of the admin panel — merged
 // into one function because the Vercel Hobby plan caps a deployment at 12
 // Serverless Functions. Selected with ?view=stats|clients, the latter with an
-// optional &email= for a single client's detail.
+// optional &phone= for a single client's detail.
 
 function dateKey(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function addDaysToKey(key, n) {
+  const d = new Date(`${key}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Same phone in different formats ("(571) 555-1234" vs "571-555-1234" vs
+// "+15715551234") must resolve to the same client, so clients are grouped by
+// digits only, with a leading US country code stripped.
+function normalizePhone(phone) {
+  let digits = (phone || '').replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+  return digits;
 }
 
 async function handleStats(req, res) {
@@ -23,6 +38,10 @@ async function handleStats(req, res) {
   const weekStart = zonedTimeToUtc(weekStartKey, 0, 0, TIMEZONE);
   const weekEnd = zonedTimeToUtc(weekEndKey, 0, 0, TIMEZONE);
 
+  const tomorrowKey = addDaysToKey(todayKey, 1);
+  const todayStart = zonedTimeToUtc(todayKey, 0, 0, TIMEZONE);
+  const todayEnd = zonedTimeToUtc(tomorrowKey, 0, 0, TIMEZONE);
+
   const monthStartKey = dateKey(year, month, 1);
   const nextMonthDate = new Date(Date.UTC(year, month, 1)); // month is 1-based, so this rolls to next month
   const nextMonthKey = dateKey(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1, 1);
@@ -31,8 +50,8 @@ async function handleStats(req, res) {
 
   const { data, error } = await getSupabase()
     .from('appointments')
-    .select('id, client_name, client_email, service_label, start_at, deposit_cents')
-    .eq('status', 'confirmed')
+    .select('id, client_name, client_phone, service_label, start_at, status, deposit_cents')
+    .in('status', ['confirmed', 'pending_payment'])
     .order('start_at', { ascending: true });
 
   if (error) {
@@ -45,14 +64,15 @@ async function handleStats(req, res) {
   const weekEndMs = weekEnd.getTime();
   const monthStartMs = monthStart.getTime();
   const monthEndMs = monthEnd.getTime();
+  const todayStartMs = todayStart.getTime();
+  const todayEndMs = todayEnd.getTime();
   const nowMs = now.getTime();
 
   let weekApptCount = 0;
   let weekDepositTotalCents = 0;
   let monthDepositTotalCents = 0;
   let nextAppointment = null;
-
-  const visitsByEmail = new Map();
+  const todayAppointments = [];
 
   appointments.forEach((a) => {
     const startMs = new Date(a.start_at).getTime();
@@ -71,45 +91,37 @@ async function handleStats(req, res) {
         startAt: a.start_at,
       };
     }
-
-    const key = a.client_email;
-    if (key) {
-      const entry = visitsByEmail.get(key) || { name: a.client_name, email: key, visits: 0 };
-      entry.visits += 1;
-      entry.name = a.client_name; // keep most recent name on file
-      visitsByEmail.set(key, entry);
+    if (startMs >= todayStartMs && startMs < todayEndMs) {
+      todayAppointments.push({
+        id: a.id,
+        clientName: a.client_name,
+        clientPhone: a.client_phone,
+        phoneKey: normalizePhone(a.client_phone),
+        serviceLabel: a.service_label,
+        startAt: a.start_at,
+        status: a.status,
+      });
     }
   });
-
-  const topClients = [...visitsByEmail.values()]
-    .sort((a, b) => b.visits - a.visits)
-    .slice(0, 5);
 
   res.status(200).json({
     weekApptCount,
     weekDepositTotalCents,
     monthDepositTotalCents,
-    topClients,
     nextAppointment,
+    todayAppointments,
   });
-}
-
-function addDaysToKey(key, n) {
-  const d = new Date(`${key}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
 }
 
 async function handleClients(req, res) {
   const supabase = getSupabase();
-  const { email } = req.query;
+  const { phone } = req.query;
 
-  if (email) {
+  if (phone) {
     const { data, error } = await supabase
       .from('appointments')
       .select('id, service_label, client_name, client_phone, client_email, notes, start_at, end_at, status, price_cents, deposit_cents')
-      .eq('client_email', email)
-      .in('status', ['confirmed', 'pending_payment'])
+      .in('status', ['confirmed', 'pending_payment', 'cancelled'])
       .order('start_at', { ascending: true });
 
     if (error) {
@@ -117,24 +129,27 @@ async function handleClients(req, res) {
       return;
     }
 
-    const appointments = data || [];
-    const nowMs = Date.now();
-    const upcoming = appointments.filter((a) => new Date(a.start_at).getTime() >= nowMs);
-    const past = appointments
-      .filter((a) => new Date(a.start_at).getTime() < nowMs)
-      .sort((a, b) => new Date(b.start_at) - new Date(a.start_at));
-
+    const appointments = (data || []).filter((a) => normalizePhone(a.client_phone) === phone);
     if (!appointments.length) {
       res.status(404).json({ error: 'Clienta no encontrada' });
       return;
     }
 
+    const nowMs = Date.now();
+    const upcoming = appointments.filter((a) => a.status !== 'cancelled' && new Date(a.start_at).getTime() >= nowMs);
+    const past = appointments
+      .filter((a) => a.status === 'cancelled' || new Date(a.start_at).getTime() < nowMs)
+      .sort((a, b) => new Date(b.start_at) - new Date(a.start_at));
+
+    const emails = [...new Set(appointments.map((a) => a.client_email).filter(Boolean))];
     const last = appointments[appointments.length - 1];
+
     res.status(200).json({
       client: {
         name: last.client_name,
-        email: last.client_email,
         phone: last.client_phone,
+        email: last.client_email,
+        emails,
       },
       upcoming,
       past,
@@ -154,21 +169,23 @@ async function handleClients(req, res) {
   }
 
   const nowMs = Date.now();
-  const byEmail = new Map();
+  const byPhone = new Map();
 
   (data || []).forEach((a) => {
-    const key = a.client_email;
-    if (!key) return;
-    const entry = byEmail.get(key) || {
+    const phoneKey = normalizePhone(a.client_phone);
+    if (!phoneKey) return;
+    const entry = byPhone.get(phoneKey) || {
       name: a.client_name,
-      email: key,
       phone: a.client_phone,
+      phoneKey,
+      emails: new Set(),
       visits: 0,
       lastVisit: null,
       nextVisit: null,
     };
     entry.name = a.client_name;
     entry.phone = a.client_phone;
+    if (a.client_email) entry.emails.add(a.client_email);
     entry.visits += 1;
 
     const startMs = new Date(a.start_at).getTime();
@@ -178,10 +195,12 @@ async function handleClients(req, res) {
       if (!entry.nextVisit || startMs < new Date(entry.nextVisit).getTime()) entry.nextVisit = a.start_at;
     }
 
-    byEmail.set(key, entry);
+    byPhone.set(phoneKey, entry);
   });
 
-  const clients = [...byEmail.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const clients = [...byPhone.values()]
+    .map((c) => ({ ...c, emails: [...c.emails] }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   res.status(200).json({ clients });
 }
 

@@ -84,5 +84,35 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  if (req.method === 'DELETE') {
+    const { id } = req.body || {};
+    if (!id) {
+      res.status(400).json({ error: 'Falta el id del servicio' });
+      return;
+    }
+
+    const { error: deleteError } = await supabase.from('services').delete().eq('id', id);
+
+    if (!deleteError) {
+      res.status(200).json({ deleted: true });
+      return;
+    }
+
+    // Foreign key violation — this service has appointment history, so a
+    // hard delete would break those records. Deactivate it instead.
+    if (deleteError.code === '23503') {
+      const { data, error: updateError } = await supabase.from('services').update({ active: false }).eq('id', id).select().single();
+      if (updateError) {
+        res.status(500).json({ error: 'No se pudo borrar ni desactivar el servicio' });
+        return;
+      }
+      res.status(200).json({ deleted: false, deactivated: true, service: data });
+      return;
+    }
+
+    res.status(500).json({ error: 'No se pudo borrar el servicio' });
+    return;
+  }
+
   res.status(405).json({ error: 'Method not allowed' });
 };

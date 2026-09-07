@@ -251,31 +251,43 @@
 }
 .stat-card__next b { color: var(--color-ink); }
 
-.top-clients-list { display: grid; gap: var(--space-2); }
-.top-client-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
+.today-appointments-list { display: grid; gap: var(--space-2); }
+.today-appointments-list .agenda-item {
+  border-top: none;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  text-align: left;
-}
-.top-client-row:hover { background: var(--color-rose-lt); }
-.top-client-row__visits {
-  font-size: var(--text-xs);
-  color: var(--color-gold);
-  font-weight: var(--weight-semibold);
+  padding: var(--space-3) var(--space-4);
 }
 
-/* ── Agenda: view toggle ── */
+.link-btn {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--dur-fast);
+}
+.link-btn:hover { text-decoration-color: currentColor; }
+
+.danger-link { color: #c0392b !important; }
+
+/* ── Agenda ── */
+.agenda-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  position: relative;
+}
+.agenda-toolbar #btn-add-appointment {
+  position: absolute;
+  right: 0;
+}
+.btn--sm { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); }
+
 .agenda-view-toggle {
   display: flex;
   justify-content: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-6);
 }
 .agenda-view-btn {
   padding: var(--space-2) var(--space-5);
@@ -321,39 +333,39 @@
 }
 #agenda-month-grid .cal-day {
   position: relative;
-  aspect-ratio: 1;
+  height: var(--month-row-h, 96px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 6px;
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
 }
 #agenda-month-grid .cal-day.enabled { cursor: pointer; }
 #agenda-month-grid .cal-day.enabled:hover { border-color: var(--color-gold); }
+#agenda-month-grid .cal-day.has-open { background: #eff9f2; border-color: #cdeada; }
+#agenda-month-grid .cal-day.has-appts { border-color: var(--color-gold-lt); }
 #agenda-month-grid .cal-day.selected {
   background: var(--grad-gold);
   color: #fff;
 }
+#agenda-month-grid .cal-day.selected .cal-day__badge--open { background: rgba(255,255,255,.25); color: #fff; }
 #agenda-month-grid .cal-day.empty { visibility: hidden; }
-.cal-day__dot {
-  display: block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-}
-.cal-day__dot--open { background: #1f7a45; }
-.cal-day__dot--booked {
-  width: auto; height: auto;
-  min-width: 14px;
-  font-size: 9px;
-  line-height: 14px;
+.cal-day__num { font-weight: var(--weight-semibold); }
+.cal-day__badge {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
   color: #fff;
-  background: var(--color-gold);
+  background: var(--grad-gold);
   border-radius: var(--radius-full);
-  padding: 0 4px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+.cal-day__badge--open {
+  background: #1f7a45;
 }
 
 .agenda-list { display: grid; gap: var(--space-4); }
@@ -391,6 +403,10 @@
 }
 .agenda-item__status.confirmed { background: #e5f6ec; color: #1f7a45; }
 .agenda-item__status.pending_payment { background: var(--color-rose-lt); color: var(--color-ink); }
+.agenda-item__status.cancelled { background: var(--color-border); color: var(--color-ink-soft); }
+
+.agenda-item.is-cancelled { opacity: .55; }
+.agenda-item.is-cancelled .agenda-item__meta { text-decoration: line-through; }
 
 .agenda-item__actions {
   display: flex;
@@ -458,7 +474,7 @@
     var(--color-border) 0,
     var(--color-border) 1px,
     transparent 1px,
-    transparent 56px
+    transparent var(--hour-h, 56px)
   );
 }
 .week-grid__day:last-child { border-right: none; }
@@ -488,6 +504,13 @@
 }
 .week-slot--appt.status-pending_payment {
   background: var(--color-rose);
+}
+.week-slot--appt.status-cancelled {
+  background: var(--color-border);
+  color: var(--color-ink-soft);
+  box-shadow: none;
+  text-decoration: line-through;
+  z-index: 1;
 }
 .week-slot--appt:hover { filter: brightness(1.05); }
 .week-slot--appt b { display: block; font-weight: var(--weight-semibold); }
@@ -627,6 +650,18 @@
   margin-bottom: var(--space-4);
 }
 
+.service-row__buttons { display: flex; gap: var(--space-2); }
+.btn-icon-delete {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: #c0392b;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+.btn-icon-delete:hover { background: #fdecea; border-color: #f3c6c1; }
+
 /* ── Clientes ── */
 .clients-layout {
   display: grid;
@@ -693,6 +728,40 @@
 
 @media (max-width: 720px) {
   .service-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Modal (manual appointment) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 19, 22, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  z-index: 100;
+}
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - var(--space-12));
+  overflow-y: auto;
+  background: var(--color-bg);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-lg);
+}
+.modal-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.modal-card__head h3 { font-family: var(--font-alt); font-size: var(--text-lg); }
+.modal-card__close {
+  font-size: var(--text-xl);
+  line-height: 1;
+  color: var(--color-ink-soft);
 }
 
 /* ── Responsive: collapse sidebar to an icon rail ── */
