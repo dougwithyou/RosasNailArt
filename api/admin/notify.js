@@ -44,6 +44,7 @@ module.exports = async function handler(req, res) {
     });
     res.status(200).json({ sent: true });
   } catch (err) {
+    console.error('Failed to send appointment notice for', appointmentId, err);
     res.status(500).json({ error: 'No se pudo enviar el mensaje' });
   }
 };
