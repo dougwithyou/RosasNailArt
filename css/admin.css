@@ -7,6 +7,12 @@
   min-height: 100vh;
 }
 
+/* [hidden] must always win over any display rule below, or a toggled
+   section stays visible (e.g. login + shell rendering at the same time). */
+.admin-page [hidden] {
+  display: none !important;
+}
+
 /* ── Login ── */
 .admin-login {
   display: flex;
@@ -102,6 +108,91 @@
 .admin-panel__head h3 { font-family: var(--font-alt); min-width: 220px; text-align: center; }
 
 /* ── Agenda ── */
+.agenda-view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+.agenda-view-btn {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-ink-mid);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.agenda-view-btn.active {
+  background: var(--color-ink);
+  color: #fff;
+  border-color: var(--color-ink);
+}
+
+.agenda-day__open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.agenda-open-chip {
+  font-size: var(--text-xs);
+  background: #e5f6ec;
+  color: #1f7a45;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+/* Month grid (reuses booking.html's calendar look) */
+#agenda-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+#agenda-month-grid .cal-dow {
+  font-size: var(--text-xs);
+  color: var(--color-ink-soft);
+  padding-bottom: var(--space-2);
+}
+#agenda-month-grid .cal-day {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+#agenda-month-grid .cal-day.enabled { cursor: pointer; }
+#agenda-month-grid .cal-day.enabled:hover { border-color: var(--color-gold); }
+#agenda-month-grid .cal-day.selected {
+  background: var(--grad-gold);
+  color: #fff;
+}
+#agenda-month-grid .cal-day.empty { visibility: hidden; }
+.cal-day__dot {
+  display: block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.cal-day__dot--open { background: #1f7a45; }
+.cal-day__dot--booked {
+  width: auto; height: auto;
+  min-width: 14px;
+  font-size: 9px;
+  line-height: 14px;
+  color: #fff;
+  background: var(--color-gold);
+  border-radius: var(--radius-full);
+  padding: 0 4px;
+}
+
 .agenda-list { display: grid; gap: var(--space-4); }
 .agenda-day {
   background: var(--color-surface);

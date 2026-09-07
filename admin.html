@@ -68,11 +68,20 @@
 
       <!-- AGENDA -->
       <section class="admin-panel" data-tab-panel="agenda">
-        <div class="admin-panel__head">
-          <button type="button" class="calendar-nav__btn" id="week-prev" aria-label="Semana anterior">‹</button>
-          <h3 id="week-label"></h3>
-          <button type="button" class="calendar-nav__btn" id="week-next" aria-label="Semana siguiente">›</button>
+        <div class="agenda-view-toggle">
+          <button type="button" class="agenda-view-btn active" data-view="week">Semana</button>
+          <button type="button" class="agenda-view-btn" data-view="month">Mes</button>
         </div>
+
+        <div class="admin-panel__head">
+          <button type="button" class="calendar-nav__btn" id="agenda-prev" aria-label="Anterior">‹</button>
+          <h3 id="agenda-label"></h3>
+          <button type="button" class="calendar-nav__btn" id="agenda-next" aria-label="Siguiente">›</button>
+        </div>
+
+        <!-- Month view: calendar grid with open/booked indicators -->
+        <div class="calendar-grid" id="agenda-month-grid" hidden></div>
+
         <div id="agenda-list" class="agenda-list"></div>
       </section>
 

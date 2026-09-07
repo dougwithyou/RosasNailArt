@@ -15,9 +15,21 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const DOW_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const STATUS_LABELS = { confirmed: 'Confirmada', pending_payment: 'Pendiente de pago' };
 
+const MONTH_LABELS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
 const state = {
   weekStart: startOfWeek(new Date()),
+  viewMode: 'week',
+  monthCursor: startOfMonth(new Date()),
+  selectedDay: null,
 };
+
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
 
 function startOfWeek(d) {
   const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -100,20 +112,83 @@ function initTabs() {
 }
 
 // ── Agenda ────────────────────────────────────────
+function renderDayCard(day, dayAppointments, dayOpenSlots) {
+  const key = dateKey(day);
+  const section = document.createElement('div');
+  section.className = 'agenda-day';
+  section.innerHTML = `<h4>${DOW_LABELS[day.getDay()]} ${key}</h4>`;
+
+  const openWrap = document.createElement('div');
+  openWrap.className = 'agenda-day__open';
+  if (!dayOpenSlots.length) {
+    openWrap.innerHTML = '<p class="agenda-empty">Sin horarios abiertos</p>';
+  } else {
+    openWrap.innerHTML = dayOpenSlots
+      .map((s) => `<span class="agenda-open-chip">🟢 ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} disponible</span>`)
+      .join('');
+  }
+  section.appendChild(openWrap);
+
+  if (!dayAppointments.length) {
+    const empty = document.createElement('p');
+    empty.className = 'agenda-empty';
+    empty.textContent = 'Sin citas reservadas';
+    section.appendChild(empty);
+  } else {
+    dayAppointments.forEach((a) => {
+      const time = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+      const item = document.createElement('div');
+      item.className = 'agenda-item';
+      item.innerHTML = `
+        <div class="agenda-item__time">${time}</div>
+        <div class="agenda-item__meta">
+          <b>${a.client_name}</b> — ${a.service_label}<br>
+          ${a.client_phone} · ${money(a.price_cents)} (depósito ${money(a.deposit_cents)})
+        </div>
+        <div class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</div>
+        <div class="agenda-item__actions">
+          <button type="button" data-notify="reschedule">Reagendar</button>
+          <button type="button" data-notify="late">Voy tarde</button>
+          <button type="button" data-notify="custom">Mensaje</button>
+        </div>
+      `;
+      $$('[data-notify]', item).forEach((btn) => {
+        btn.addEventListener('click', () => sendAppointmentNotice(a, btn.dataset.notify));
+      });
+      section.appendChild(item);
+    });
+  }
+  return section;
+}
+
+async function fetchRange(from, to) {
+  const [{ appointments }, { openSlots }] = await Promise.all([
+    apiFetch(`/api/admin/appointments?from=${from}&to=${to}`),
+    apiFetch(`/api/admin/open-slots?from=${from.slice(0, 10)}&to=${to.slice(0, 10)}`),
+  ]);
+  return { appointments, openSlots };
+}
+
 async function loadAgenda() {
+  if (state.viewMode === 'month') return loadMonthView();
+  return loadWeekView();
+}
+
+async function loadWeekView() {
+  $('#agenda-month-grid').hidden = true;
+  $('#agenda-list').hidden = false;
+
   const weekEnd = new Date(state.weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
-
-  $('#week-label').textContent = `${dateKey(state.weekStart)} — ${dateKey(weekEnd)}`;
+  $('#agenda-label').textContent = `${dateKey(state.weekStart)} — ${dateKey(weekEnd)}`;
 
   const list = $('#agenda-list');
   list.innerHTML = '<p class="agenda-empty">Cargando…</p>';
 
   try {
-    const from = state.weekStart.toISOString();
     const toDate = new Date(weekEnd);
     toDate.setHours(23, 59, 59, 999);
-    const { appointments } = await apiFetch(`/api/admin/appointments?from=${from}&to=${toDate.toISOString()}`);
+    const { appointments, openSlots } = await fetchRange(state.weekStart.toISOString(), toDate.toISOString());
 
     list.innerHTML = '';
     for (let i = 0; i < 7; i++) {
@@ -121,51 +196,110 @@ async function loadAgenda() {
       day.setDate(day.getDate() + i);
       const key = dateKey(day);
       const dayAppointments = appointments.filter((a) => a.start_at.slice(0, 10) === key);
-
-      const section = document.createElement('div');
-      section.className = 'agenda-day';
-      section.innerHTML = `<h4>${DOW_LABELS[day.getDay()]} ${key}</h4>`;
-
-      if (!dayAppointments.length) {
-        section.innerHTML += '<p class="agenda-empty">Sin citas</p>';
-      } else {
-        dayAppointments.forEach((a) => {
-          const time = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
-          const item = document.createElement('div');
-          item.className = 'agenda-item';
-          item.innerHTML = `
-            <div class="agenda-item__time">${time}</div>
-            <div class="agenda-item__meta">
-              <b>${a.client_name}</b> — ${a.service_label}<br>
-              ${a.client_phone} · ${money(a.price_cents)} (depósito ${money(a.deposit_cents)})
-            </div>
-            <div class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</div>
-            <div class="agenda-item__actions">
-              <button type="button" data-notify="reschedule">Reagendar</button>
-              <button type="button" data-notify="late">Voy tarde</button>
-              <button type="button" data-notify="custom">Mensaje</button>
-            </div>
-          `;
-          $$('[data-notify]', item).forEach((btn) => {
-            btn.addEventListener('click', () => sendAppointmentNotice(a, btn.dataset.notify));
-          });
-          section.appendChild(item);
-        });
-      }
-      list.appendChild(section);
+      const dayOpenSlots = openSlots.filter((s) => s.date === key);
+      list.appendChild(renderDayCard(day, dayAppointments, dayOpenSlots));
     }
   } catch (err) {
     list.innerHTML = '<p class="agenda-empty">No se pudo cargar la agenda.</p>';
   }
 }
 
+async function loadMonthView() {
+  const grid = $('#agenda-month-grid');
+  const list = $('#agenda-list');
+  grid.hidden = false;
+
+  $('#agenda-label').textContent = `${MONTH_LABELS[state.monthCursor.getMonth()]} ${state.monthCursor.getFullYear()}`;
+
+  const monthStart = state.monthCursor;
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  grid.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+  list.innerHTML = '';
+
+  try {
+    const { appointments, openSlots } = await fetchRange(monthStart.toISOString(), monthEnd.toISOString());
+
+    const apptCountByDay = {};
+    appointments.forEach((a) => {
+      const key = a.start_at.slice(0, 10);
+      apptCountByDay[key] = (apptCountByDay[key] || 0) + 1;
+    });
+    const openCountByDay = {};
+    openSlots.forEach((s) => {
+      openCountByDay[s.date] = (openCountByDay[s.date] || 0) + 1;
+    });
+
+    grid.innerHTML = '';
+    ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].forEach((d) => {
+      const el = document.createElement('div');
+      el.className = 'cal-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    const leadingBlanks = monthStart.getDay();
+    for (let i = 0; i < leadingBlanks; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      grid.appendChild(el);
+    }
+
+    const daysInMonth = monthEnd.getDate();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
+      const key = dateKey(d);
+      const el = document.createElement('div');
+      el.className = 'cal-day enabled' + (state.selectedDay === key ? ' selected' : '');
+      const apptCount = apptCountByDay[key] || 0;
+      const openCount = openCountByDay[key] || 0;
+      el.innerHTML = `
+        <span class="cal-day__num">${day}</span>
+        ${openCount ? `<span class="cal-day__dot cal-day__dot--open"></span>` : ''}
+        ${apptCount ? `<span class="cal-day__dot cal-day__dot--booked">${apptCount}</span>` : ''}
+      `;
+      el.addEventListener('click', () => {
+        state.selectedDay = key;
+        const dayAppointments = appointments.filter((a) => a.start_at.slice(0, 10) === key);
+        const dayOpenSlots = openSlots.filter((s) => s.date === key);
+        list.innerHTML = '';
+        list.appendChild(renderDayCard(d, dayAppointments, dayOpenSlots));
+        $$('.cal-day', grid).forEach((c) => c.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+      grid.appendChild(el);
+    }
+  } catch (err) {
+    grid.innerHTML = '<p class="agenda-empty">No se pudo cargar el mes.</p>';
+  }
+}
+
 function initAgendaNav() {
-  $('#week-prev').addEventListener('click', () => {
-    state.weekStart.setDate(state.weekStart.getDate() - 7);
+  $$('.agenda-view-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      $$('.agenda-view-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.viewMode = btn.dataset.view;
+      state.selectedDay = null;
+      $('#agenda-list').innerHTML = '';
+      loadAgenda();
+    });
+  });
+
+  $('#agenda-prev').addEventListener('click', () => {
+    if (state.viewMode === 'month') {
+      state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() - 1, 1);
+    } else {
+      state.weekStart.setDate(state.weekStart.getDate() - 7);
+    }
     loadAgenda();
   });
-  $('#week-next').addEventListener('click', () => {
-    state.weekStart.setDate(state.weekStart.getDate() + 7);
+  $('#agenda-next').addEventListener('click', () => {
+    if (state.viewMode === 'month') {
+      state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() + 1, 1);
+    } else {
+      state.weekStart.setDate(state.weekStart.getDate() + 7);
+    }
     loadAgenda();
   });
 }
