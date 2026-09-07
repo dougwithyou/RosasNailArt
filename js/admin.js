@@ -155,7 +155,7 @@ async function loadStats() {
   wrap.innerHTML = '<p class="agenda-empty">Cargando…</p>';
 
   try {
-    const stats = await apiFetch('/api/admin/stats');
+    const stats = await apiFetch('/api/admin/dashboard?view=stats');
     $('#stat-week-count').textContent = stats.weekApptCount;
     $('#stat-week-deposit').textContent = money(stats.weekDepositTotalCents);
     $('#stat-month-deposit').textContent = money(stats.monthDepositTotalCents);
@@ -659,7 +659,7 @@ async function loadClients() {
   const list = $('#clients-list');
   list.innerHTML = '<p class="agenda-empty">Cargando…</p>';
   try {
-    const { clients } = await apiFetch('/api/admin/clients');
+    const { clients } = await apiFetch('/api/admin/dashboard?view=clients');
     clientsCache = clients;
     renderClientsList(clients);
   } catch (err) {
@@ -727,7 +727,7 @@ async function selectClient(email) {
   const detail = $('#client-detail');
   detail.innerHTML = '<p class="agenda-empty">Cargando…</p>';
   try {
-    const { client, upcoming, past } = await apiFetch(`/api/admin/clients?email=${encodeURIComponent(email)}`);
+    const { client, upcoming, past } = await apiFetch(`/api/admin/dashboard?view=clients&email=${encodeURIComponent(email)}`);
     detail.innerHTML = `
       <div class="client-detail__head">
         <h3>${client.name}</h3>
