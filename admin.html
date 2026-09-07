@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Maribel — Rosas Nails Art</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#161316">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/admin.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<main class="admin-page">
+  <div class="container container--narrow">
+
+    <!-- LOGIN -->
+    <section class="admin-login" id="admin-login">
+      <div class="admin-login__card">
+        <div class="nav-logo" style="justify-content:center;margin-bottom:var(--space-6)">
+          <div class="nav-logo__mark">R</div>
+          <div class="nav-logo__text">
+            <span class="nav-logo__name">Rosas Nails Art</span>
+            <span class="nav-logo__tagline">Panel de Maribel</span>
+          </div>
+        </div>
+
+        <form id="login-form" class="admin-form">
+          <label>
+            Email
+            <input type="email" name="email" required autocomplete="username">
+          </label>
+          <label>
+            Contraseña
+            <input type="password" name="password" required autocomplete="current-password">
+          </label>
+          <p class="admin-error" id="login-error" hidden></p>
+          <button type="submit" class="btn btn--primary">Iniciar sesión</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ADMIN SHELL -->
+    <section class="admin-shell" id="admin-shell" hidden>
+      <header class="admin-header">
+        <div class="nav-logo">
+          <div class="nav-logo__mark">R</div>
+          <div class="nav-logo__text">
+            <span class="nav-logo__name">Rosas Nails Art</span>
+            <span class="nav-logo__tagline">Panel de Maribel</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn--secondary" id="btn-logout">Cerrar sesión</button>
+      </header>
+
+      <nav class="admin-tabs">
+        <button type="button" class="admin-tab active" data-tab="agenda">Agenda</button>
+        <button type="button" class="admin-tab" data-tab="horarios">Horarios</button>
+        <button type="button" class="admin-tab" data-tab="servicios">Servicios</button>
+        <button type="button" class="admin-tab" data-tab="notificaciones">Notificaciones</button>
+      </nav>
+
+      <!-- AGENDA -->
+      <section class="admin-panel" data-tab-panel="agenda">
+        <div class="admin-panel__head">
+          <button type="button" class="calendar-nav__btn" id="week-prev" aria-label="Semana anterior">‹</button>
+          <h3 id="week-label"></h3>
+          <button type="button" class="calendar-nav__btn" id="week-next" aria-label="Semana siguiente">›</button>
+        </div>
+        <div id="agenda-list" class="agenda-list"></div>
+      </section>
+
+      <!-- HORARIOS -->
+      <section class="admin-panel" data-tab-panel="horarios" hidden>
+        <form id="openslot-form" class="admin-form admin-form--inline">
+          <label>
+            Fecha
+            <input type="date" name="date" required>
+          </label>
+          <label>
+            Desde
+            <input type="time" name="startTime" value="09:30" required>
+          </label>
+          <label>
+            Hasta
+            <input type="time" name="endTime" value="18:30" required>
+          </label>
+          <button type="submit" class="btn btn--primary">Abrir horario</button>
+        </form>
+        <p class="admin-error" id="openslot-error" hidden></p>
+        <div id="openslots-list" class="openslots-list"></div>
+      </section>
+
+      <!-- SERVICIOS -->
+      <section class="admin-panel" data-tab-panel="servicios" hidden>
+        <p class="admin-note">El depósito es fijo ($45 por cita, sin importar el servicio) — no se edita por servicio.</p>
+        <div id="services-list" class="services-list"></div>
+
+        <details class="admin-add-service">
+          <summary>+ Agregar servicio nuevo</summary>
+          <form id="service-form" class="admin-form admin-form--inline">
+            <label>
+              Nombre
+              <input type="text" name="name" required>
+            </label>
+            <label>
+              Duración (min)
+              <input type="number" name="durationMinutes" min="1" required>
+            </label>
+            <label>
+              Precio ($)
+              <input type="number" name="price" min="0" step="0.01" required>
+            </label>
+            <label>
+              Tipo
+              <select name="category">
+                <option value="service">Servicio</option>
+                <option value="addon">Add-on</option>
+              </select>
+            </label>
+            <button type="submit" class="btn btn--primary">Agregar</button>
+          </form>
+        </details>
+      </section>
+
+      <!-- NOTIFICACIONES -->
+      <section class="admin-panel" data-tab-panel="notificaciones" hidden>
+        <h3>Anuncio para todas las clientas</h3>
+        <p class="admin-note" id="broadcast-count">Calculando destinatarias…</p>
+
+        <form id="broadcast-form" class="admin-form">
+          <label>
+            Plantilla rápida
+            <select id="broadcast-template">
+              <option value="">Personalizado</option>
+              <option value="promo">Promoción</option>
+              <option value="new-hours">Nuevos horarios disponibles</option>
+              <option value="vacation">Cerrado por vacaciones</option>
+            </select>
+          </label>
+          <label>
+            Asunto
+            <input type="text" name="subject" required>
+          </label>
+          <label>
+            Mensaje
+            <textarea name="message" rows="5" required></textarea>
+          </label>
+          <p class="admin-error" id="broadcast-error" hidden></p>
+          <button type="submit" class="btn btn--primary">Enviar a todas las clientas</button>
+        </form>
+      </section>
+    </section>
+
+  </div>
+</main>
+
+<script src="js/admin.js"></script>
+</body>
+</html>
