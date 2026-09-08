@@ -16,7 +16,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Stripe Connect (Standard OAuth) — Client ID is public, safe to ship to the
 // browser. Redirect URI must exactly match what's registered in the Stripe
 // dashboard's Connect settings.
-const STRIPE_CONNECT_CLIENT_ID = 'ca_V6YOOHbch87wD2yR11GOXTivkojvEib1';
+const STRIPE_CONNECT_CLIENT_ID = 'ca_VDHv53UhBTXx0icWWEtr9qsfqwWcAPu5';
 const STRIPE_CONNECT_REDIRECT_URI = 'https://rosasnailart-dopa6.vercel.app/api/admin/dashboard?view=stripe-connect-callback';
 
 const TIMEZONE = 'America/New_York';
