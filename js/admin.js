@@ -333,7 +333,7 @@ function renderDayCard(day, dayAppointments, dayOpenSlots, onCancelled) {
     openWrap.innerHTML = '<p class="agenda-empty">Sin horarios abiertos</p>';
   } else {
     openWrap.innerHTML = dayOpenSlots
-      .map((s) => `<span class="agenda-open-chip">🟢 ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} disponible</span>`)
+      .map((s) => `<span class="agenda-open-chip">${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} disponible</span>`)
       .join('');
   }
   section.appendChild(openWrap);

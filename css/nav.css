@@ -232,7 +232,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: .9rem;
   color: rgba(255,255,255,.7);
   transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
 }
@@ -274,7 +273,9 @@
   margin-bottom: var(--space-3);
 }
 
-.footer-contact-item .icon { font-size: .85rem; margin-top: 2px; flex-shrink: 0; }
+.footer-contact-item .icon { margin-top: 2px; flex-shrink: 0; }
+.footer-social-link svg { width: 16px; height: 16px; stroke-width: 1.8; }
+.footer-contact-item .icon svg { width: 15px; height: 15px; stroke-width: 1.8; }
 
 .footer-bottom {
   display: flex;
