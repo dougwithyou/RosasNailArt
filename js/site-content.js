@@ -93,6 +93,14 @@
       }
     }
 
+    const courses = content.courses || {};
+    setText('courses-title', courses.title);
+    setText('courses-description', courses.description);
+    if (courses.whatsappMessage) {
+      const btn = document.getElementById('courses-whatsapp-btn');
+      if (btn) btn.href = `https://wa.me/15715138905?text=${encodeURIComponent(courses.whatsappMessage)}`;
+    }
+
     const footer = content.footer || {};
     setText('footer-about', footer.about);
     setText('footer-address', footer.address);

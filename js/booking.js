@@ -83,7 +83,7 @@ function renderServiceGrid() {
       <button type="button" class="service-select-card" data-id="${s.id}">
         <h3>${s.name}</h3>
         <div class="service-select-card__meta">
-          <span>⏱ ${s.duration_minutes} min</span>
+          <span class="service-select-card__time"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>${s.duration_minutes} min</span>
           <b>${money(s.price_cents)}</b>
         </div>
       </button>`
