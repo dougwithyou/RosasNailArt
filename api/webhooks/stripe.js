@@ -24,12 +24,24 @@ module.exports = async function handler(req, res) {
   const rawBody = await readRawBody(req);
   const signature = req.headers['stripe-signature'];
 
+  // Two separate Stripe webhook endpoints point here, each with its own
+  // signing secret: one for events on the platform account (bookings made
+  // before Maribel connects Stripe), one for events on her connected
+  // account (bookings after). Try both before giving up.
   let event;
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    res.status(400).send(`Webhook signature verification failed`);
-    return;
+  } catch (platformErr) {
+    if (!process.env.STRIPE_CONNECT_WEBHOOK_SECRET) {
+      res.status(400).send('Webhook signature verification failed');
+      return;
+    }
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_CONNECT_WEBHOOK_SECRET);
+    } catch (connectErr) {
+      res.status(400).send('Webhook signature verification failed');
+      return;
+    }
   }
 
   if (event.type !== 'checkout.session.completed') {
