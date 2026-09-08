@@ -128,9 +128,13 @@ async function handleCancel(req, res, supabase) {
   if (appointment.status === 'confirmed' && appointment.stripe_session_id) {
     try {
       const stripe = getStripe();
-      const session = await stripe.checkout.sessions.retrieve(appointment.stripe_session_id);
+      // The charge may have run on Maribel's connected Stripe account
+      // (recorded on the appointment at booking time) rather than the
+      // platform account, so both lookups must target the same one.
+      const stripeOpts = appointment.stripe_account_id ? { stripeAccount: appointment.stripe_account_id } : undefined;
+      const session = await stripe.checkout.sessions.retrieve(appointment.stripe_session_id, stripeOpts);
       if (session.payment_intent) {
-        await stripe.refunds.create({ payment_intent: session.payment_intent });
+        await stripe.refunds.create({ payment_intent: session.payment_intent }, stripeOpts);
         refunded = true;
       }
     } catch (err) {

@@ -146,30 +146,43 @@ module.exports = async function handler(req, res) {
 
   const origin = req.headers.origin || `https://${req.headers.host}`;
 
-  try {
-    const session = await getStripe().checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      customer_email: clientEmail.trim(),
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            unit_amount: totalDeposit,
-            product_data: {
-              name: `Depósito — ${serviceLabel}`,
-              description: `Rosas Nails Art · ${start.toLocaleString('es-US', { timeZone: TIMEZONE })}`,
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: { appointment_id: appointment.id },
-      success_url: `${origin}/booking.html?success=1&appointment=${appointment.id}`,
-      cancel_url: `${origin}/booking.html?cancelled=1`,
-    });
+  // Once Maribel has connected her own Stripe account, deposits are charged
+  // directly on it (a Connect "direct charge") so the money lands in her
+  // balance instead of the platform's.
+  const { data: settings } = await supabase.from('business_settings').select('stripe_account_id').eq('id', true).maybeSingle();
+  const connectedAccountId = settings?.stripe_account_id || null;
+  const stripeRequestOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
 
-    await supabase.from('appointments').update({ stripe_session_id: session.id }).eq('id', appointment.id);
+  try {
+    const session = await getStripe().checkout.sessions.create(
+      {
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer_email: clientEmail.trim(),
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              unit_amount: totalDeposit,
+              product_data: {
+                name: `Depósito — ${serviceLabel}`,
+                description: `Rosas Nails Art · ${start.toLocaleString('es-US', { timeZone: TIMEZONE })}`,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: { appointment_id: appointment.id },
+        success_url: `${origin}/booking.html?success=1&appointment=${appointment.id}`,
+        cancel_url: `${origin}/booking.html?cancelled=1`,
+      },
+      stripeRequestOptions
+    );
+
+    await supabase
+      .from('appointments')
+      .update({ stripe_session_id: session.id, stripe_account_id: connectedAccountId })
+      .eq('id', appointment.id);
 
     res.status(200).json({ checkoutUrl: session.url, appointmentId: appointment.id });
   } catch (err) {

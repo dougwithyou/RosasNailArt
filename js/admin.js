@@ -13,6 +13,12 @@ const SUPABASE_ANON_KEY =
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Stripe Connect (Standard OAuth) — Client ID is public, safe to ship to the
+// browser. Redirect URI must exactly match what's registered in the Stripe
+// dashboard's Connect settings.
+const STRIPE_CONNECT_CLIENT_ID = 'ca_V6YOOHbch87wD2yR11GOXTivkojvEib1';
+const STRIPE_CONNECT_REDIRECT_URI = 'https://rosasnailart-dopa6.vercel.app/api/admin/dashboard?view=stripe-connect-callback';
+
 const TIMEZONE = 'America/New_York';
 const DOW_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DOW_LABELS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -176,6 +182,65 @@ async function loadStats() {
     renderTodayAppointments(stats.todayAppointments || []);
   } catch (err) {
     wrap.innerHTML = '<p class="agenda-empty">No se pudieron cargar las métricas.</p>';
+  }
+
+  loadStripeStatus();
+}
+
+// ── Stripe Connect ─────────────────────────────────
+async function connectStripe() {
+  const { data } = await sb.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return;
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: STRIPE_CONNECT_CLIENT_ID,
+    scope: 'read_write',
+    redirect_uri: STRIPE_CONNECT_REDIRECT_URI,
+    state: token,
+  });
+  location.href = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
+}
+
+async function loadStripeStatus() {
+  const wrap = $('#stripe-status');
+  wrap.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+  try {
+    const data = await apiFetch('/api/admin/dashboard?view=stripe-balance');
+
+    if (!data.connected) {
+      wrap.innerHTML = `
+        <p class="admin-note">Conecta tu cuenta de Stripe para que los depósitos de las clientas lleguen directo a tu cuenta bancaria, en vez de a la cuenta de prueba.</p>
+        <button type="button" class="btn btn--primary" id="btn-connect-stripe">Conectar con Stripe</button>
+      `;
+      $('#btn-connect-stripe').addEventListener('click', connectStripe);
+      return;
+    }
+
+    const connectedDate = data.connectedAt
+      ? new Date(data.connectedAt).toLocaleDateString('es-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: TIMEZONE })
+      : null;
+
+    wrap.innerHTML = `
+      <span class="stripe-connected-badge">✓ Cuenta conectada</span>
+      <div class="stripe-balance-grid">
+        <div>
+          <span class="stat-card__label">Disponible</span>
+          <span class="stat-card__value">${money(data.availableCents)}</span>
+        </div>
+        <div>
+          <span class="stat-card__label">Pendiente</span>
+          <span class="stat-card__value">${money(data.pendingCents)}</span>
+        </div>
+      </div>
+      <p class="admin-note">
+        ${connectedDate ? `Conectada desde el ${connectedDate}. ` : ''}
+        Stripe deposita automáticamente a tu cuenta bancaria según tu calendario de pagos —
+        puedes verlo y ajustarlo entrando a tu <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">dashboard de Stripe</a>.
+      </p>
+    `;
+  } catch (err) {
+    wrap.innerHTML = '<p class="agenda-empty">No se pudo cargar el estado de Stripe.</p>';
   }
 }
 
@@ -1160,6 +1225,13 @@ document.addEventListener('DOMContentLoaded', () => {
   loadBroadcastCount();
 
   $('#week-popover-close')?.addEventListener('click', closeWeekPopover);
+
+  const params = new URLSearchParams(location.search);
+  if (params.has('stripe_connect')) {
+    const ok = params.get('stripe_connect') === 'success';
+    alert(ok ? 'Cuenta de Stripe conectada correctamente.' : 'No se pudo conectar con Stripe. Intenta de nuevo.');
+    history.replaceState({}, '', location.pathname);
+  }
 });
 
 })();

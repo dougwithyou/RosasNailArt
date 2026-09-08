@@ -34,6 +34,9 @@ create table appointments (
   status text not null default 'pending_payment'
     check (status in ('pending_payment', 'confirmed', 'cancelled', 'expired')),
   stripe_session_id text,
+  -- Which Stripe account actually processed the charge (platform vs
+  -- Maribel's connected Stripe Connect account) — null before she connects.
+  stripe_account_id text,
   deposit_cents integer not null,
   price_cents integer not null default 0,
   service_label text not null default '',
@@ -58,12 +61,22 @@ create table open_slots (
 
 create index open_slots_date_idx on open_slots (date);
 
+-- Singleton row holding the business's connected Stripe account (Standard
+-- Connect OAuth) — only one row ever exists (id is always true).
+create table business_settings (
+  id boolean primary key default true check (id),
+  stripe_account_id text,
+  stripe_connected_at timestamptz
+);
+insert into business_settings (id) values (true);
+
 -- All access goes through the service-role key from serverless functions only —
 -- RLS stays on with no policies, so the anon/public key (if ever exposed) can't read or write anything.
 alter table services enable row level security;
 alter table blocked_dates enable row level security;
 alter table appointments enable row level security;
 alter table open_slots enable row level security;
+alter table business_settings enable row level security;
 
 -- Seed the real catalog from Maribel's answers (Respuestas_Maribel.pdf).
 -- Deposit is a flat $45 per appointment (Maribel's policy) — see

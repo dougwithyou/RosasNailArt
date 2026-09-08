@@ -1,12 +1,18 @@
+const Stripe = require('stripe');
 const { getSupabase } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
 const { getZonedDateParts, zonedTimeToUtc } = require('../../lib/timezone');
 const { TIMEZONE } = require('../../lib/business-hours');
 
-// Backs both the Inicio (stats) and Clientes tabs of the admin panel — merged
-// into one function because the Vercel Hobby plan caps a deployment at 12
-// Serverless Functions. Selected with ?view=stats|clients, the latter with an
-// optional &phone= for a single client's detail.
+// Backs the Inicio (stats + Stripe balance) and Clientes tabs of the admin
+// panel, plus the Stripe Connect OAuth callback — merged into one function
+// because the Vercel Hobby plan caps a deployment at 12 Serverless
+// Functions. Selected with ?view=stats|clients|stripe-balance|stripe-connect-callback,
+// clients with an optional &phone= for a single client's detail.
+
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
 
 function dateKey(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -204,18 +210,90 @@ async function handleClients(req, res) {
   res.status(200).json({ clients });
 }
 
+async function handleStripeBalance(req, res) {
+  const { data: settings, error } = await getSupabase()
+    .from('business_settings')
+    .select('stripe_account_id, stripe_connected_at')
+    .eq('id', true)
+    .single();
+
+  if (error) {
+    res.status(500).json({ error: 'No se pudo verificar la conexión con Stripe' });
+    return;
+  }
+
+  if (!settings?.stripe_account_id) {
+    res.status(200).json({ connected: false });
+    return;
+  }
+
+  try {
+    const balance = await getStripe().balance.retrieve({ stripeAccount: settings.stripe_account_id });
+    const sum = (arr) => arr.reduce((acc, b) => acc + b.amount, 0);
+    res.status(200).json({
+      connected: true,
+      connectedAt: settings.stripe_connected_at,
+      availableCents: sum(balance.available),
+      pendingCents: sum(balance.pending),
+    });
+  } catch (err) {
+    console.error('Failed to retrieve Stripe balance', err);
+    res.status(500).json({ error: 'No se pudo consultar el balance de Stripe' });
+  }
+}
+
+// Stripe redirects the browser here after Maribel approves the OAuth
+// connection — a plain unauthenticated GET, not one of our normal
+// Bearer-token AJAX calls. The "state" param carries her Supabase access
+// token (set by the frontend before redirecting to Stripe) so this can
+// still be verified as coming from an authenticated owner.
+async function handleStripeConnectCallback(req, res) {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    res.redirect(302, '/admin.html?stripe_connect=error');
+    return;
+  }
+
+  req.headers.authorization = `Bearer ${state || ''}`;
+  const user = await requireRole(req, res, ['owner', 'superadmin']);
+  if (!user) return;
+
+  try {
+    const tokenResponse = await getStripe().oauth.token({ grant_type: 'authorization_code', code });
+
+    const { error: dbError } = await getSupabase()
+      .from('business_settings')
+      .update({ stripe_account_id: tokenResponse.stripe_user_id, stripe_connected_at: new Date().toISOString() })
+      .eq('id', true);
+
+    if (dbError) throw dbError;
+
+    res.redirect(302, '/admin.html?stripe_connect=success');
+  } catch (err) {
+    console.error('Stripe Connect OAuth exchange failed', err);
+    res.redirect(302, '/admin.html?stripe_connect=error');
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
+  const { view } = req.query;
+
+  // Handles its own auth (via the state param) since it's a browser
+  // redirect from Stripe, not an authenticated AJAX call.
+  if (view === 'stripe-connect-callback') return handleStripeConnectCallback(req, res);
+
   const user = await requireRole(req, res, ['owner', 'superadmin']);
   if (!user) return;
 
-  const { view } = req.query;
   if (view === 'clients') return handleClients(req, res);
   if (view === 'stats') return handleStats(req, res);
+  if (view === 'stripe-balance') return handleStripeBalance(req, res);
 
   res.status(400).json({ error: 'Falta el parámetro view' });
 };
