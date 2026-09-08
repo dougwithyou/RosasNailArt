@@ -84,6 +84,7 @@
               <div class="nail-palm" style="width:36px;border-radius:0 0 8px 8px;height:32px"></div>
             </div>
           </div>
+          <img id="hero-photo-img" class="hero-photo__img" alt="" hidden>
           <div class="hero-photo__badge">R</div>
           <div class="hero-photo__chip">
             <b>+500</b> clientas felices desde que abrimos en Manassas
@@ -102,14 +103,14 @@
 
       <!-- Copy -->
       <div class="hero-copy" data-reveal="right">
-        <div class="section-label">Hola hermosas — bienvenida a tu espacio</div>
+        <div class="section-label" id="hero-eyebrow">Hola hermosas — bienvenida a tu espacio</div>
 
         <h1 class="hero-title">
-          Cuidado de uñas con un toque
-          <span class="accent">verdaderamente elegante</span>
+          <span id="hero-title-main">Cuidado de uñas con un toque</span>
+          <span class="accent" id="hero-title-accent">verdaderamente elegante</span>
         </h1>
 
-        <p class="hero-sub">
+        <p class="hero-sub" id="hero-subtitle">
           Manicure, pedicure y diseños personalizados en un ambiente pensado para que te sientas consentida de principio a fin.
         </p>
 
@@ -283,7 +284,7 @@
       <a href="https://www.tiktok.com/@rosasnailsart6" target="_blank" rel="noopener" class="btn btn--secondary" data-reveal="right">Ver más en TikTok →</a>
     </div>
 
-    <div class="gallery-grid" data-stagger>
+    <div class="gallery-grid" id="gallery-grid" data-stagger>
 
       <!-- Large feature -->
       <div class="gallery-item" data-reveal data-category="nail-art">
@@ -409,11 +410,11 @@
       <div class="why-copy" data-reveal="right">
         <div class="section-label">¿Por qué elegirnos?</div>
         <h2 class="section-title">Tu bienestar es nuestra <span class="accent">prioridad</span></h2>
-        <p style="color:var(--color-ink-mid);line-height:1.7">
+        <p style="color:var(--color-ink-mid);line-height:1.7" id="why-paragraph">
           Un espacio creado especialmente para ti, donde la belleza, el cuidado y la relajación se encuentran. Desde el momento en que llegas, mi objetivo es que te sientas bienvenida, consentida y especial, mientras creamos unas uñas hermosas diseñadas solo para ti. Ven a relajarte, disfruta tu tiempo, y sal sintiéndote hermosa.
         </p>
 
-        <div class="why-features">
+        <div class="why-features" id="why-features">
           <div class="why-feature">
             <div class="why-feature__icon">🛡️</div>
             <div class="why-feature__body">
@@ -458,7 +459,7 @@
       <p>Más de 500 mujeres ya nos eligieron. Esto es lo que piensan.</p>
     </div>
 
-    <div class="testimonials-grid" data-stagger>
+    <div class="testimonials-grid" id="testimonials-grid" data-stagger>
       <div class="testimonial-card" data-reveal>
         <div class="testimonial-stars">
           <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
@@ -542,7 +543,7 @@
             <span class="nav-logo__tagline">Manassas, VA</span>
           </div>
         </a>
-        <p>Tu espacio de belleza y relajación en el corazón de Manassas, Virginia. Especialistas en uñas con amor y dedicación.</p>
+        <p id="footer-about">Tu espacio de belleza y relajación en el corazón de Manassas, Virginia. Especialistas en uñas con amor y dedicación.</p>
         <div class="footer-socials">
           <a href="https://www.facebook.com/share/1CFKVmjfkE/?mibextid=wwXIfr" target="_blank" rel="noopener" class="footer-social-link" aria-label="Facebook">👍</a>
           <a href="https://www.tiktok.com/@rosasnailsart6" target="_blank" rel="noopener" class="footer-social-link" aria-label="TikTok">🎵</a>
@@ -577,19 +578,19 @@
         <h5>Contacto</h5>
         <div class="footer-contact-item">
           <span class="icon">📍</span>
-          <span>7548 Diplomat Dr B, Suite 201, Manassas, VA 20109</span>
+          <span id="footer-address">7548 Diplomat Dr B, Suite 201, Manassas, VA 20109</span>
         </div>
         <div class="footer-contact-item">
           <span class="icon">⏰</span>
-          <span>Lun–Vie: 9:30am – 6:30pm</span>
+          <span id="footer-hours">Lun–Vie: 9:30am – 6:30pm</span>
         </div>
         <div class="footer-contact-item">
           <span class="icon">📱</span>
-          <a href="tel:+15715138905">+1 (571) 513-8905</a>
+          <a href="tel:+15715138905" id="footer-phone">+1 (571) 513-8905</a>
         </div>
         <div class="footer-contact-item">
           <span class="icon">✉️</span>
-          <a href="mailto:Maribelhernandez6@icloud.com">Maribelhernandez6@icloud.com</a>
+          <a href="mailto:Maribelhernandez6@icloud.com" id="footer-email">Maribelhernandez6@icloud.com</a>
         </div>
       </div>
     </div>
@@ -601,6 +602,7 @@
   </div>
 </footer>
 
+<script src="js/site-content.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -1097,9 +1097,10 @@ async function selectClient(phoneKey) {
       errorEl.hidden = true;
       const form = e.target;
       try {
-        await apiFetch('/api/admin/notify', {
+        await apiFetch('/api/admin/broadcast', {
           method: 'POST',
           body: JSON.stringify({
+            mode: 'notify',
             clientEmail: client.email,
             clientName: client.name,
             type: 'custom',
@@ -1140,9 +1141,9 @@ async function sendAppointmentNotice(appointment, type) {
   }
 
   try {
-    await apiFetch('/api/admin/notify', {
+    await apiFetch('/api/admin/broadcast', {
       method: 'POST',
-      body: JSON.stringify({ appointmentId: appointment.id, type, customMessage }),
+      body: JSON.stringify({ mode: 'notify', appointmentId: appointment.id, type, customMessage }),
     });
     alert('Mensaje enviado.');
   } catch (err) {
