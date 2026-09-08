@@ -1,0 +1,63 @@
+/* =============================================
+   ROSAS NAILS ART — Superadmin (site content CMS)
+   ============================================= */
+
+.save-success {
+  background: #e5f6ec;
+  color: #1f7a45;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+.save-success a { color: inherit; text-decoration: underline; }
+
+#content-form { display: grid; gap: var(--space-6); }
+#content-form > .btn--primary { justify-self: start; }
+
+.image-field { margin-top: var(--space-2); }
+.image-field__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-ink-mid);
+  margin-bottom: var(--space-2);
+}
+.image-field__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.image-field__preview {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.repeat-list {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.repeat-item {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+.repeat-item__remove {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: #c0392b;
+}
+.repeat-item__remove:hover { text-decoration: underline; }
+.repeat-item .admin-form { padding-right: 70px; }

@@ -70,6 +70,24 @@ create table business_settings (
 );
 insert into business_settings (id) values (true);
 
+-- Singleton row holding the editable landing-page content (superadmin CMS).
+-- A missing key in `content` just means "use the hardcoded default in
+-- index.html" — nothing breaks before the superadmin edits anything.
+create table site_content (
+  id boolean primary key default true check (id),
+  content jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+insert into site_content (id) values (true);
+
+-- Public bucket for landing-page photos uploaded from the superadmin panel.
+-- Uploads only ever go through the service-role key server-side, so no
+-- client-side storage policies are needed for writes; public reads are
+-- served directly since the bucket is public.
+insert into storage.buckets (id, name, public)
+values ('site-images', 'site-images', true)
+on conflict (id) do nothing;
+
 -- All access goes through the service-role key from serverless functions only —
 -- RLS stays on with no policies, so the anon/public key (if ever exposed) can't read or write anything.
 alter table services enable row level security;
@@ -77,6 +95,7 @@ alter table blocked_dates enable row level security;
 alter table appointments enable row level security;
 alter table open_slots enable row level security;
 alter table business_settings enable row level security;
+alter table site_content enable row level security;
 
 -- Seed the real catalog from Maribel's answers (Respuestas_Maribel.pdf).
 -- Deposit is a flat $45 per appointment (Maribel's policy) — see

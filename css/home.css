@@ -60,6 +60,16 @@
   padding: var(--space-6);
 }
 
+/* Real photo, when the superadmin CMS sets one — sits above the CSS
+   illustration below it but under the badge/rating chip overlays. */
+.hero-photo__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Elegant nail art illustration using CSS */
 .hero-photo__art {
   position: absolute;

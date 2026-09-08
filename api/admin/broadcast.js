@@ -1,6 +1,8 @@
 const { getSupabase } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
-const { sendBroadcast } = require('../../lib/resend');
+const { sendBroadcast, sendAppointmentNotice } = require('../../lib/resend');
+
+const NOTICE_TYPES = ['reschedule', 'late', 'custom'];
 
 function chunk(arr, size) {
   const out = [];
@@ -8,11 +10,69 @@ function chunk(arr, size) {
   return out;
 }
 
+// Sends a one-off notice to a single client — either about a specific
+// appointment (appointmentId) or directly to a client's contact info (from
+// her ficha in Clientes). Merged into this file (alongside the all-clients
+// broadcast below) to stay within Vercel's 12 Serverless Functions cap.
+async function handleNotify(req, res, supabase) {
+  const { appointmentId, clientEmail, clientName, type, customMessage } = req.body || {};
+  if (!NOTICE_TYPES.includes(type)) {
+    res.status(400).json({ error: 'Datos inválidos' });
+    return;
+  }
+  if (!appointmentId && !(clientEmail && clientName)) {
+    res.status(400).json({ error: 'Datos inválidos' });
+    return;
+  }
+  if (!appointmentId && type !== 'custom') {
+    res.status(400).json({ error: 'Datos inválidos' });
+    return;
+  }
+  if (type === 'custom' && !customMessage?.trim()) {
+    res.status(400).json({ error: 'Escribe un mensaje' });
+    return;
+  }
+
+  let recipient = { email: clientEmail, name: clientName, startAt: null };
+
+  if (appointmentId) {
+    const { data: appointment, error } = await supabase
+      .from('appointments')
+      .select('client_email, client_name, start_at')
+      .eq('id', appointmentId)
+      .single();
+
+    if (error || !appointment) {
+      res.status(404).json({ error: 'Cita no encontrada' });
+      return;
+    }
+    recipient = { email: appointment.client_email, name: appointment.client_name, startAt: appointment.start_at };
+  }
+
+  try {
+    await sendAppointmentNotice({
+      to: recipient.email,
+      clientName: recipient.name,
+      startAt: recipient.startAt,
+      type,
+      customMessage,
+    });
+    res.status(200).json({ sent: true });
+  } catch (err) {
+    console.error('Failed to send appointment notice for', appointmentId || recipient.email, err);
+    res.status(500).json({ error: 'No se pudo enviar el mensaje' });
+  }
+}
+
 module.exports = async function handler(req, res) {
   const user = await requireRole(req, res, ['owner', 'superadmin']);
   if (!user) return;
 
   const supabase = getSupabase();
+
+  if (req.method === 'POST' && req.body?.mode === 'notify') {
+    return handleNotify(req, res, supabase);
+  }
 
   if (req.method === 'GET') {
     // Preview recipient count before sending.
