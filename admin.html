@@ -84,10 +84,16 @@
         </button>
       </nav>
 
-      <button type="button" class="sidebar__logout" id="btn-logout">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9"/><path d="M16 16l4.5-4.5L16 7"/><path d="M20.2 11.5H10"/></svg>
-        <span>Cerrar sesión</span>
-      </button>
+      <div class="sidebar__footer">
+        <button type="button" class="sidebar__logout" id="btn-change-password">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+          <span>Cambiar contraseña</span>
+        </button>
+        <button type="button" class="sidebar__logout" id="btn-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9"/><path d="M16 16l4.5-4.5L16 7"/><path d="M20.2 11.5H10"/></svg>
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
     </aside>
 
     <div class="admin-main">
@@ -275,6 +281,29 @@
     <div class="week-popover" id="week-popover" hidden>
       <button type="button" class="week-popover__close" id="week-popover-close" aria-label="Cerrar">×</button>
       <div class="week-popover__body" id="week-popover-body"></div>
+    </div>
+
+    <!-- Change password modal -->
+    <div class="modal-overlay" id="change-password-overlay" hidden>
+      <div class="modal-card">
+        <div class="modal-card__head">
+          <h3>Cambiar contraseña</h3>
+          <button type="button" class="modal-card__close" id="change-password-close" aria-label="Cerrar">×</button>
+        </div>
+        <form id="change-password-form" class="admin-form">
+          <label>
+            Contraseña nueva
+            <input type="password" name="password" minlength="8" autocomplete="new-password" required>
+          </label>
+          <label>
+            Confirmar contraseña nueva
+            <input type="password" name="confirmPassword" minlength="8" autocomplete="new-password" required>
+          </label>
+          <p class="admin-note">Mínimo 8 caracteres.</p>
+          <p class="admin-error" id="change-password-error" hidden></p>
+          <button type="submit" class="btn btn--primary">Guardar contraseña</button>
+        </form>
+      </div>
     </div>
 
     <!-- Manual appointment modal (for clients booked outside the site, e.g. WhatsApp) -->
