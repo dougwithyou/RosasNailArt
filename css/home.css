@@ -467,6 +467,7 @@
   overflow: hidden;
   cursor: pointer;
   position: relative;
+  min-height: 220px;
 }
 
 .gallery-item:nth-child(1) {
