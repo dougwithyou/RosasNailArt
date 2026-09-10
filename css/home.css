@@ -1053,7 +1053,7 @@
 
   .why-grid { grid-template-columns: 1fr; gap: var(--space-10); }
   .why-visual { order: -1; }
-  .why-visual__card { aspect-ratio: 16/9; justify-content: center; }
+  .why-visual__card { aspect-ratio: auto; justify-content: center; padding: var(--space-6); }
   .why-visual__stat-cards { flex-direction: row; flex-wrap: wrap; }
   .why-stat-card {
     flex: 1;
