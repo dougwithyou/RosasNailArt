@@ -55,6 +55,48 @@
   <a href="booking.html" class="btn btn--primary">Reservar cita →</a>
 </nav>
 
+<!-- ===== HERO PHOTO (full-screen on load, docks into the hero grid on scroll) ===== -->
+<div class="hero-scroll-spacer" id="hero-scroll-spacer"></div>
+
+<div class="hero-photo" id="hero-photo">
+  <div class="hero-photo__art"></div>
+  <div class="hero-photo__nails">
+    <div class="nail-finger">
+      <div class="nail-shape nude"></div>
+      <div class="nail-palm" style="width:38px;border-radius:0 0 8px 8px;height:36px"></div>
+    </div>
+    <div class="nail-finger">
+      <div class="nail-shape"></div>
+      <div class="nail-palm" style="width:44px;border-radius:0 0 8px 8px;height:44px"></div>
+    </div>
+    <div class="nail-finger">
+      <div class="nail-shape rose"></div>
+      <div class="nail-palm" style="width:48px;border-radius:0 0 8px 8px;height:48px"></div>
+    </div>
+    <div class="nail-finger">
+      <div class="nail-shape"></div>
+      <div class="nail-palm" style="width:44px;border-radius:0 0 8px 8px;height:44px"></div>
+    </div>
+    <div class="nail-finger">
+      <div class="nail-shape black"></div>
+      <div class="nail-palm" style="width:36px;border-radius:0 0 8px 8px;height:32px"></div>
+    </div>
+  </div>
+  <img id="hero-photo-img" class="hero-photo__img" alt="" hidden>
+  <div class="hero-photo__badge">R</div>
+  <div class="hero-photo__chip">
+    <b>+500</b> clientas felices desde que abrimos en Manassas
+  </div>
+  <div class="hero-photo__intro">
+    <div class="hero-photo__intro-eyebrow">Hola hermosas</div>
+    <h2 class="hero-photo__intro-title">Bienvenida a<br>tu espacio</h2>
+  </div>
+  <div class="hero-photo__scrollcue">
+    <span>Desliza para explorar</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+  </div>
+</div>
+
 <!-- ===== HERO ===== -->
 <section class="hero" id="top">
   <div class="container">
@@ -62,36 +104,7 @@
 
       <!-- Photo / Visual -->
       <div class="hero-visual" data-reveal="left">
-        <div class="hero-photo">
-          <div class="hero-photo__art"></div>
-          <div class="hero-photo__nails">
-            <div class="nail-finger">
-              <div class="nail-shape nude"></div>
-              <div class="nail-palm" style="width:38px;border-radius:0 0 8px 8px;height:36px"></div>
-            </div>
-            <div class="nail-finger">
-              <div class="nail-shape"></div>
-              <div class="nail-palm" style="width:44px;border-radius:0 0 8px 8px;height:44px"></div>
-            </div>
-            <div class="nail-finger">
-              <div class="nail-shape rose"></div>
-              <div class="nail-palm" style="width:48px;border-radius:0 0 8px 8px;height:48px"></div>
-            </div>
-            <div class="nail-finger">
-              <div class="nail-shape"></div>
-              <div class="nail-palm" style="width:44px;border-radius:0 0 8px 8px;height:44px"></div>
-            </div>
-            <div class="nail-finger">
-              <div class="nail-shape black"></div>
-              <div class="nail-palm" style="width:36px;border-radius:0 0 8px 8px;height:32px"></div>
-            </div>
-          </div>
-          <img id="hero-photo-img" class="hero-photo__img" alt="" hidden>
-          <div class="hero-photo__badge">R</div>
-          <div class="hero-photo__chip">
-            <b>+500</b> clientas felices desde que abrimos en Manassas
-          </div>
-        </div>
+        <div class="hero-photo-slot" id="hero-photo-slot"></div>
 
         <!-- Floating rating card -->
         <div class="hero-float-card" aria-hidden="true">
@@ -611,5 +624,6 @@
 
 <script src="js/site-content.js"></script>
 <script src="js/main.js"></script>
+<script src="js/hero-reveal.js"></script>
 </body>
 </html>
