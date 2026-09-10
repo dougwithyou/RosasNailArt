@@ -30,6 +30,7 @@
   const cue = photo.querySelector('.hero-photo__scrollcue');
   const chip = photo.querySelector('.hero-photo__chip');
   const badge = photo.querySelector('.hero-photo__badge');
+  const header = document.getElementById('site-header');
 
   let spacerHeight = 0;
   let targetTop = 0;
@@ -54,9 +55,14 @@
     targetRadius = parseFloat(getComputedStyle(slot).borderRadius) || 26;
   }
 
+  function setHeaderHidden(hidden) {
+    if (header) header.classList.toggle('hero-hidden', hidden);
+  }
+
   function applyFixed(progress) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    setHeaderHidden(true);
     photo.style.position = 'fixed';
     photo.style.top = lerp(0, targetTop, progress) + 'px';
     photo.style.left = lerp(0, targetLeft, progress) + 'px';
@@ -80,6 +86,7 @@
 
   function dock() {
     docked = true;
+    setHeaderHidden(false);
     photo.style.position = 'absolute';
     photo.style.top = spacerHeight + targetTop + 'px';
     photo.style.left = targetLeft + 'px';
