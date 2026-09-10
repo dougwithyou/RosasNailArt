@@ -303,6 +303,14 @@
   color: rgba(255,255,255,.35);
 }
 
+.footer-bottom p a {
+  color: rgba(255,255,255,.6);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--dur-fast);
+}
+.footer-bottom p a:hover { color: var(--color-gold-lt); }
+
 @media (max-width: 900px) {
   .footer-grid {
     grid-template-columns: 1fr 1fr;
