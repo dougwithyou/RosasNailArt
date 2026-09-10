@@ -640,6 +640,7 @@
   font-size: 1.3rem;
   color: var(--color-ink);
   line-height: 1.1;
+  word-break: break-word;
 }
 .why-stat-card .label {
   font-size: var(--text-xs);
@@ -949,7 +950,13 @@
   .why-visual { order: -1; }
   .why-visual__card { aspect-ratio: 16/9; justify-content: center; }
   .why-visual__stat-cards { flex-direction: row; flex-wrap: wrap; }
-  .why-stat-card { flex: 1; min-width: 140px; }
+  .why-stat-card {
+    flex: 1;
+    min-width: 140px;
+    flex-direction: column;
+    text-align: center;
+  }
+  .why-stat-card .value { font-size: 1.05rem; }
 
   .testimonials-grid { grid-template-columns: 1fr 1fr; }
 
