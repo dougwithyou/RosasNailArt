@@ -439,6 +439,10 @@
   font-weight: var(--weight-medium);
 }
 
+/* Precio y duración se ven solo al reservar (booking.html), no en la landing */
+.service-card__price,
+.service-card__time { display: none; }
+
 /* ── GALLERY PREVIEW ── */
 .gallery-preview {
   padding: var(--space-24) 0;
