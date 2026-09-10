@@ -45,14 +45,18 @@
     return a + (b - a) * t;
   }
 
+  // While docked, `photo` itself sits where `slot` used to (re-parented
+  // in place), so it's the live reference to measure; `slot` is detached
+  // from the DOM at that point and would report a zero rect.
   function measure() {
     spacerHeight = spacer.offsetHeight;
-    const r = slot.getBoundingClientRect();
+    const ref = docked ? photo : slot;
+    const r = ref.getBoundingClientRect();
     targetTop = r.top + window.scrollY - spacerHeight;
     targetLeft = r.left;
     targetWidth = r.width;
     targetHeight = r.height;
-    targetRadius = parseFloat(getComputedStyle(slot).borderRadius) || 26;
+    targetRadius = parseFloat(getComputedStyle(ref).borderRadius) || 26;
   }
 
   function setHeaderHidden(hidden) {
@@ -84,15 +88,22 @@
     if (badge) badge.style.opacity = badgeFade;
   }
 
+  // Docking hands the photo back to normal document flow — re-parented
+  // exactly where `slot` sat — instead of computing an absolute pixel
+  // position by hand. That guarantees the page's height always matches
+  // its real layout, with no risk of the photo's box drifting past the
+  // footer and leaving blank scroll space below it.
   function dock() {
     docked = true;
     setHeaderHidden(false);
-    photo.style.position = 'absolute';
-    photo.style.top = spacerHeight + targetTop + 'px';
-    photo.style.left = targetLeft + 'px';
-    photo.style.width = targetWidth + 'px';
-    photo.style.height = targetHeight + 'px';
-    photo.style.borderRadius = targetRadius + 'px';
+    photo.classList.add('hero-photo--static');
+    photo.style.position = '';
+    photo.style.top = '';
+    photo.style.left = '';
+    photo.style.width = '';
+    photo.style.height = '';
+    photo.style.borderRadius = '';
+    slot.replaceWith(photo);
     if (intro) intro.style.opacity = 0;
     if (cue) {
       cue.style.opacity = 0;
@@ -102,12 +113,19 @@
     if (badge) badge.style.opacity = 1;
   }
 
+  function undock() {
+    docked = false;
+    photo.replaceWith(slot);
+    photo.classList.remove('hero-photo--static');
+    document.body.appendChild(photo);
+  }
+
   function onScroll() {
     const progress = Math.max(0, Math.min(window.scrollY / spacerHeight, 1));
     if (progress >= 1) {
       if (!docked) dock();
     } else {
-      docked = false;
+      if (docked) undock();
       applyFixed(progress);
     }
     ticking = false;
