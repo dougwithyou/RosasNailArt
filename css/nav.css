@@ -218,6 +218,10 @@
   margin-bottom: var(--space-8);
 }
 
+/* Index.html's footer only has Brand + Contacto now that the
+   Servicios/Navegación columns were removed. */
+.footer-grid--compact { grid-template-columns: 1.4fr 1fr; }
+
 .footer-brand .nav-logo { margin-bottom: var(--space-6); }
 .footer-brand .nav-logo__name,
 .footer-brand .nav-logo__mark { color: #fff; }
@@ -311,4 +315,8 @@
   .footer-grid {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 900px) {
+  .footer-grid--compact { grid-template-columns: 1fr; }
 }
