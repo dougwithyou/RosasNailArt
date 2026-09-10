@@ -116,6 +116,66 @@ function collectScalarFields() {
   });
 }
 
+// ── Image crop modal ───────────────────────────────
+let cropper = null;
+let cropResolve = null;
+let cropOutputSize = { w: 900, h: 900 };
+
+function openCropModal(file, aspectRatio, outputSize) {
+  cropOutputSize = outputSize;
+  return new Promise((resolve) => {
+    cropResolve = resolve;
+    const modal = $('#crop-modal');
+    const img = $('#crop-image');
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(img, {
+        aspectRatio,
+        viewMode: 1,
+        background: false,
+        autoCropArea: 1,
+      });
+    };
+    img.src = url;
+    modal.hidden = false;
+  });
+}
+
+function closeCropModal() {
+  $('#crop-modal').hidden = true;
+  if (cropper) {
+    cropper.destroy();
+    cropper = null;
+  }
+  const img = $('#crop-image');
+  if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  img.removeAttribute('src');
+}
+
+function initCropModal() {
+  $('#crop-cancel').addEventListener('click', () => {
+    const resolve = cropResolve;
+    cropResolve = null;
+    closeCropModal();
+    if (resolve) resolve(null);
+  });
+  $('#crop-confirm').addEventListener('click', () => {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({
+      width: cropOutputSize.w,
+      height: cropOutputSize.h,
+      imageSmoothingQuality: 'high',
+    });
+    canvas.toBlob((blob) => {
+      const resolve = cropResolve;
+      cropResolve = null;
+      closeCropModal();
+      if (resolve) resolve(blob);
+    }, 'image/jpeg', 0.9);
+  });
+}
+
 // ── Image upload (hero photo — static field) ──────
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -126,11 +186,11 @@ function readFileAsBase64(file) {
   });
 }
 
-async function uploadImage(file) {
-  const fileBase64 = await readFileAsBase64(file);
+async function uploadImage(blob) {
+  const fileBase64 = await readFileAsBase64(blob);
   const { url } = await apiFetch('/api/site-content', {
     method: 'POST',
-    body: JSON.stringify({ fileBase64, fileName: file.name, contentType: file.type }),
+    body: JSON.stringify({ fileBase64, fileName: 'photo.jpg', contentType: 'image/jpeg' }),
   });
   return url;
 }
@@ -144,7 +204,9 @@ function initStaticImageUpload() {
     const file = input.files[0];
     if (!file) return;
     try {
-      const url = await uploadImage(file);
+      const blob = await openCropModal(file, 4 / 5, { w: 960, h: 1200 });
+      if (!blob) return;
+      const url = await uploadImage(blob);
       setPath(content, 'hero.photoUrl', url);
       preview.src = url;
       preview.hidden = false;
@@ -226,7 +288,9 @@ function renderGallery() {
       const file = input.files[0];
       if (!file) return;
       try {
-        const url = await uploadImage(file);
+        const blob = await openCropModal(file, 1, { w: 900, h: 900 });
+        if (!blob) return;
+        const url = await uploadImage(blob);
         const idx = Number(item.dataset.index);
         content.gallery[idx] = { ...content.gallery[idx], imageUrl: url };
         const preview = $('[data-gallery-preview]', item);
@@ -301,6 +365,7 @@ function initSaveForm() {
 document.addEventListener('DOMContentLoaded', () => {
   if (!$('.admin-page')) return;
   initAuth();
+  initCropModal();
   initStaticImageUpload();
   initAddButtons();
   initSaveForm();
