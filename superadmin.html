@@ -13,8 +13,10 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/admin.css">
   <link rel="stylesheet" href="css/superadmin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 </head>
 <body>
 
@@ -149,6 +151,20 @@
 
           <button type="submit" class="btn btn--primary">Guardar cambios</button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- CROP MODAL -->
+  <div class="crop-modal" id="crop-modal" hidden>
+    <div class="crop-modal__dialog">
+      <div class="crop-modal__title">Ajusta la foto</div>
+      <div class="crop-modal__image-wrap">
+        <img id="crop-image" alt="">
+      </div>
+      <div class="crop-modal__actions">
+        <button type="button" class="btn btn--secondary" id="crop-cancel">Cancelar</button>
+        <button type="button" class="btn btn--primary" id="crop-confirm">Usar esta foto</button>
       </div>
     </div>
   </div>
