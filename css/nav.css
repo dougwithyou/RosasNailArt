@@ -10,7 +10,16 @@
   z-index: 1000;
   transition: background var(--dur-slow) var(--ease-smooth),
               box-shadow var(--dur-slow) var(--ease-smooth),
-              backdrop-filter var(--dur-slow);
+              backdrop-filter var(--dur-slow),
+              opacity var(--dur-slow) var(--ease-smooth);
+}
+
+/* Kept hidden by js/hero-reveal.js until the hero photo finishes
+   docking into its final size, so it doesn't float over the
+   full-screen intro. */
+.site-header.hero-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .site-header.scrolled {
