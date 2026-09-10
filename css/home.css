@@ -613,6 +613,11 @@
   align-items: center;
   gap: var(--space-4);
   box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-base) var(--ease-spring), box-shadow var(--dur-base);
+}
+.why-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .why-stat-card .icon {
