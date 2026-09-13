@@ -533,6 +533,19 @@
   font-size: var(--text-sm);
 }
 
+/* Compact layout (used for Add-ons/Extras): icon sits beside the text
+   instead of above it, so each card takes less vertical space. */
+.service-grid--compact .service-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+}
+.service-grid--compact .service-card__icon { margin-bottom: 0; flex-shrink: 0; }
+.service-grid--compact .service-card__body { min-width: 0; }
+.service-grid--compact .service-card h3 { margin-bottom: 2px; }
+.service-grid--compact .service-card p { margin-bottom: 0; }
+
 .service-card__price span { color: var(--color-gold); font-size: 1.1rem; }
 
 .service-card__time {
