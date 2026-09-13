@@ -34,7 +34,7 @@
   font-weight: var(--weight-medium);
   color: var(--color-ink-soft);
 }
-.booking-step span {
+.booking-step__num {
   width: 26px; height: 26px;
   border-radius: var(--radius-full);
   background: var(--color-border);
@@ -45,8 +45,8 @@
   transition: background var(--dur-base), color var(--dur-base);
 }
 .booking-step.active { color: var(--color-ink); }
-.booking-step.active span,
-.booking-step.done span {
+.booking-step.active .booking-step__num,
+.booking-step.done .booking-step__num {
   background: var(--grad-gold);
   color: #fff;
 }
