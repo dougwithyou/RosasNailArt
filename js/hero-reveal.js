@@ -42,7 +42,6 @@
 
   let spacerHeight = 0;
   let targetTop = 0;
-  let targetLeft = 0;
   let targetWidth = 0;
   let targetHeight = 0;
   let targetRadius = 26;
@@ -61,7 +60,6 @@
     const ref = docked ? photo : slot;
     const r = ref.getBoundingClientRect();
     targetTop = r.top + window.scrollY - spacerHeight;
-    targetLeft = r.left;
     targetWidth = r.width;
     targetHeight = r.height;
     targetRadius = parseFloat(getComputedStyle(ref).borderRadius) || 26;
@@ -87,10 +85,15 @@
   function applyFixed(progress) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const width = lerp(vw, targetWidth, progress);
     photo.style.position = 'fixed';
     photo.style.top = lerp(0, targetTop, progress) + 'px';
-    photo.style.left = lerp(0, targetLeft, progress) + 'px';
-    photo.style.width = lerp(vw, targetWidth, progress) + 'px';
+    // Center horizontally from the current width rather than lerping left
+    // independently — keeps the photo centered the whole time even if the
+    // measured target isn't perfectly centered itself, instead of it
+    // hugging one side until it snaps into place at the end.
+    photo.style.left = (vw - width) / 2 + 'px';
+    photo.style.width = width + 'px';
     photo.style.height = lerp(vh, targetHeight, progress) + 'px';
     photo.style.borderRadius = lerp(0, targetRadius, progress) + 'px';
 
