@@ -231,8 +231,7 @@ function renderCalendar() {
     const selectable = inRange && hasSlots;
     el.className =
       'cal-day' +
-      (selectable ? ' enabled' : '') +
-      (inRange && !hasSlots ? ' unavailable' : '') +
+      (selectable ? ' enabled' : ' unavailable') +
       (state.selectedDate === key ? ' selected' : '');
     el.textContent = String(day);
     if (selectable) {
