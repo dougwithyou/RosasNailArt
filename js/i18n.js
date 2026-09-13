@@ -281,23 +281,12 @@
     return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : (dict.es[key] !== undefined ? dict.es[key] : key);
   }
 
-  // Marks text we've already translated ourselves as off-limits to the
-  // browser's own translate feature (Chrome/Safari), which otherwise can
-  // re-translate it a second time — and get things like gender agreement
-  // wrong ("hermoso" instead of "hermosa") in the process.
-  function protectFromBrowserTranslate(el) {
-    el.setAttribute('translate', 'no');
-    el.classList.add('notranslate');
-  }
-
   function applyStaticTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       el.textContent = t(el.getAttribute('data-i18n'));
-      protectFromBrowserTranslate(el);
     });
     document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
       el.innerHTML = t(el.getAttribute('data-i18n-html'));
-      protectFromBrowserTranslate(el);
     });
     document.querySelectorAll('[data-i18n-attr]').forEach(function (el) {
       el.getAttribute('data-i18n-attr').split(',').forEach(function (pair) {

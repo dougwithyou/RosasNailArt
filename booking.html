@@ -67,17 +67,17 @@
     </ol>
 
     <!-- Panel: loading / error -->
-    <div id="booking-status" class="booking-status" hidden translate="no"></div>
+    <div id="booking-status" class="booking-status" hidden></div>
 
     <!-- STEP 1: Service selection -->
     <section class="booking-panel" id="panel-service" data-panel="1">
-      <div class="service-select-grid" id="service-select-grid" translate="no">
+      <div class="service-select-grid" id="service-select-grid">
         <!-- populated by js/booking.js -->
       </div>
 
       <div class="addon-select" id="addon-select" hidden>
         <h4 data-i18n="booking.addonQuestion">¿Quieres agregar Nail Art & Diseños?</h4>
-        <div id="addon-options" translate="no"></div>
+        <div id="addon-options"></div>
       </div>
 
       <div class="booking-actions">
@@ -91,15 +91,15 @@
         <div class="calendar-wrap">
           <div class="calendar-nav">
             <button type="button" class="calendar-nav__btn" id="cal-prev" aria-label="Mes anterior" data-i18n-attr="aria-label:booking.prevMonthLabel">‹</button>
-            <div class="calendar-nav__label" id="cal-label" translate="no"></div>
+            <div class="calendar-nav__label" id="cal-label"></div>
             <button type="button" class="calendar-nav__btn" id="cal-next" aria-label="Mes siguiente" data-i18n-attr="aria-label:booking.nextMonthLabel">›</button>
           </div>
-          <div class="calendar-grid" id="calendar-grid" translate="no"></div>
+          <div class="calendar-grid" id="calendar-grid"></div>
         </div>
 
         <div class="slots-wrap">
           <h4 id="slots-heading" data-i18n="booking.chooseDate">Elige una fecha</h4>
-          <div class="slots-grid" id="slots-grid" translate="no"></div>
+          <div class="slots-grid" id="slots-grid"></div>
         </div>
       </div>
 
@@ -111,7 +111,7 @@
 
     <!-- STEP 3: Contact + pay -->
     <section class="booking-panel" id="panel-contact" data-panel="3" hidden>
-      <div class="booking-summary" id="booking-summary" translate="no"></div>
+      <div class="booking-summary" id="booking-summary"></div>
 
       <p class="booking-policy" data-i18n="booking.policy">
         El depósito de $45 no es reembolsable y se descuenta del total de tu servicio.
