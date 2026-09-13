@@ -1,9 +1,11 @@
 /**
  * ROSAS NAILS ART — Hero scroll reveal
- * The hero photo opens full-screen with a greeting; scrolling past the
- * first screen shrinks and docks it into its normal slot in the hero
- * grid. Respects prefers-reduced-motion by skipping straight to the
- * docked layout (the pre-existing, non-animated design).
+ * On mobile, the hero photo opens full-screen with a greeting; scrolling
+ * past the first screen shrinks and docks it into its normal slot in the
+ * hero grid, and the nav bar stays hidden until the visitor scrolls past
+ * the whole hero section into the next one. Desktop and
+ * prefers-reduced-motion both skip straight to the plain, non-animated
+ * layout (the pre-existing design, nav bar always visible).
  */
 (function () {
   'use strict';
@@ -11,11 +13,14 @@
   const spacer = document.getElementById('hero-scroll-spacer');
   const photo = document.getElementById('hero-photo');
   const slot = document.getElementById('hero-photo-slot');
+  const heroSection = document.getElementById('top');
+  const header = document.getElementById('site-header');
   if (!spacer || !photo || !slot) return;
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isDesktop = window.matchMedia('(min-width: 901px)').matches;
 
-  if (reduceMotion) {
+  function skipToStatic() {
     spacer.remove();
     photo.classList.add('hero-photo--static');
     slot.replaceWith(photo);
@@ -23,6 +28,10 @@
     const cue = photo.querySelector('.hero-photo__scrollcue');
     if (intro) intro.style.display = 'none';
     if (cue) cue.style.display = 'none';
+  }
+
+  if (reduceMotion || isDesktop) {
+    skipToStatic();
     return;
   }
 
@@ -30,7 +39,6 @@
   const cue = photo.querySelector('.hero-photo__scrollcue');
   const chip = photo.querySelector('.hero-photo__chip');
   const badge = photo.querySelector('.hero-photo__badge');
-  const header = document.getElementById('site-header');
 
   let spacerHeight = 0;
   let targetTop = 0;
@@ -59,14 +67,26 @@
     targetRadius = parseFloat(getComputedStyle(ref).borderRadius) || 26;
   }
 
-  function setHeaderHidden(hidden) {
-    if (header) header.classList.toggle('hero-hidden', hidden);
+  function navHeightPx() {
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 72;
+  }
+
+  // Keeps the nav bar hidden through the whole hero section — full-screen
+  // intro, shrink, and the docked-in-place resting state — only revealing
+  // it once the visitor has scrolled past the hero into the next section.
+  function updateHeaderVisibility() {
+    if (!header) return;
+    if (!heroSection) {
+      header.classList.remove('hero-hidden');
+      return;
+    }
+    const pastHero = heroSection.getBoundingClientRect().bottom <= navHeightPx();
+    header.classList.toggle('hero-hidden', !pastHero);
   }
 
   function applyFixed(progress) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    setHeaderHidden(true);
     photo.style.position = 'fixed';
     photo.style.top = lerp(0, targetTop, progress) + 'px';
     photo.style.left = lerp(0, targetLeft, progress) + 'px';
@@ -95,7 +115,6 @@
   // footer and leaving blank scroll space below it.
   function dock() {
     docked = true;
-    setHeaderHidden(false);
     photo.classList.add('hero-photo--static');
     photo.style.position = '';
     photo.style.top = '';
@@ -128,6 +147,7 @@
       if (docked) undock();
       applyFixed(progress);
     }
+    updateHeaderVisibility();
     ticking = false;
   }
 
