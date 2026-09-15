@@ -1,11 +1,11 @@
 /**
- * ROSAS NAILS ART — Manual language switcher + static text translation
- * Spanish is always the default — nothing changes unless the visitor
- * clicks the language toggle button in the header. Their choice is
- * remembered (localStorage) across pages. Free-text content Maribel
- * writes herself from the superadmin CMS is left as-is — only the
- * site's own fixed copy (nav, buttons, section headings, default
- * fallback text) is translated here.
+ * ROSAS NAILS ART — Language detection + manual switcher + static text
+ * translation. First visit uses the browser's language; from then on
+ * (including if the visitor clicks the EN/ES toggle in the header) their
+ * saved choice always wins. Remembered via localStorage across pages.
+ * Free-text content Maribel writes herself from the superadmin CMS is
+ * left as-is — only the site's own fixed copy (nav, buttons, section
+ * headings, default fallback text) is translated here.
  */
 (function () {
   'use strict';
@@ -279,13 +279,19 @@
     },
   };
 
+  function detectBrowserLang() {
+    return (navigator.language || 'es').toLowerCase().indexOf('en') === 0 ? 'en' : 'es';
+  }
+
+  // First visit (nothing saved yet): use the browser's language. After
+  // that — including if the visitor ever clicks the toggle — their saved
+  // choice always wins, even if it differs from their browser language.
   function getStoredLang() {
     try {
       var stored = localStorage.getItem(STORAGE_KEY);
-      return stored === 'en' ? 'en' : 'es';
-    } catch (e) {
-      return 'es';
-    }
+      if (stored === 'en' || stored === 'es') return stored;
+    } catch (e) {}
+    return detectBrowserLang();
   }
 
   function setLang(newLang) {
@@ -295,8 +301,6 @@
     location.reload();
   }
 
-  // Spanish is always the default — language only changes when the
-  // visitor explicitly clicks the toggle button, never automatically.
   var lang = getStoredLang();
   document.documentElement.lang = lang;
 
