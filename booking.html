@@ -19,21 +19,23 @@
 <!-- ===== SITE HEADER ===== -->
 <header class="site-header" id="site-header">
   <div class="container">
-    <a href="index.html" class="nav-logo" aria-label="Rosas Nails Art — Inicio">
+    <a href="index.html" class="nav-logo" data-i18n-attr="aria-label:nav.homeLabel" aria-label="Rosas Nails Art — Inicio">
       <img src="img/logo.png" alt="Rosas Nails Art" class="nav-logo__img">
     </a>
 
     <nav class="nav-links" aria-label="Navegación principal">
-      <a href="index.html#top"                class="nav-link">Inicio</a>
-      <a href="index.html#servicios-preview"  class="nav-link">Servicios</a>
-      <a href="index.html#galeria-preview"    class="nav-link">Galería</a>
-      <a href="index.html#por-que"            class="nav-link">Nosotras</a>
-      <a href="index.html#contacto"           class="nav-link">Contacto</a>
+      <a href="index.html#top"                class="nav-link" data-i18n="nav.inicio">Inicio</a>
+      <a href="index.html#servicios-preview"  class="nav-link" data-i18n="nav.servicios">Servicios</a>
+      <a href="index.html#galeria-preview"    class="nav-link" data-i18n="nav.galeria">Galería</a>
+      <a href="index.html#por-que"            class="nav-link" data-i18n="nav.nosotras">Nosotras</a>
+      <a href="index.html#contacto"           class="nav-link" data-i18n="nav.contacto">Contacto</a>
     </nav>
 
-    <a href="booking.html" class="btn btn--primary nav-cta">Reservar cita</a>
+    <a href="booking.html" class="btn btn--primary nav-cta" data-i18n="nav.reservar">Reservar cita</a>
 
-    <button class="nav-burger" id="nav-burger" aria-expanded="false" aria-label="Menú">
+    <button type="button" class="lang-toggle" data-lang-toggle>EN</button>
+
+    <button class="nav-burger" id="nav-burger" aria-expanded="false" aria-label="Menú" data-i18n-attr="aria-label:nav.menuLabel">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -41,12 +43,12 @@
 
 <!-- Mobile drawer -->
 <nav class="nav-drawer" id="nav-drawer" aria-label="Menú móvil">
-  <a href="index.html#top"                class="nav-link">Inicio</a>
-  <a href="index.html#servicios-preview"  class="nav-link">Servicios</a>
-  <a href="index.html#galeria-preview"    class="nav-link">Galería</a>
-  <a href="index.html#por-que"            class="nav-link">Nosotras</a>
-  <a href="index.html#contacto"           class="nav-link">Contacto</a>
-  <a href="booking.html" class="btn btn--primary">Reservar cita →</a>
+  <a href="index.html#top"                class="nav-link" data-i18n="nav.inicio">Inicio</a>
+  <a href="index.html#servicios-preview"  class="nav-link" data-i18n="nav.servicios">Servicios</a>
+  <a href="index.html#galeria-preview"    class="nav-link" data-i18n="nav.galeria">Galería</a>
+  <a href="index.html#por-que"            class="nav-link" data-i18n="nav.nosotras">Nosotras</a>
+  <a href="index.html#contacto"           class="nav-link" data-i18n="nav.contacto">Contacto</a>
+  <a href="booking.html" class="btn btn--primary" data-i18n="nav.reservarArrow">Reservar cita →</a>
 </nav>
 
 <!-- ===== BOOKING WIZARD ===== -->
@@ -54,34 +56,34 @@
   <div class="container container--narrow">
 
     <div class="booking-head">
-      <div class="section-label">Reserva en 3 pasos</div>
-      <h1 class="section-title">Agenda tu cita</h1>
-      <p>Elige tu servicio, un horario disponible, y confirma con un pequeño depósito. El resto se paga el día de tu cita.</p>
+      <div class="section-label" data-i18n="booking.metaEyebrow">Reserva en 3 pasos</div>
+      <h1 class="section-title" data-i18n="booking.title">Agenda tu cita</h1>
+      <p data-i18n="booking.intro">Elige tu servicio, un horario disponible, y confirma con un pequeño depósito. El resto se paga el día de tu cita.</p>
     </div>
 
     <!-- Step indicator -->
     <ol class="booking-steps" id="booking-steps">
-      <li class="booking-step active" data-step="1"><span>1</span>Servicio</li>
-      <li class="booking-step" data-step="2"><span>2</span>Fecha y hora</li>
-      <li class="booking-step" data-step="3"><span>3</span>Tus datos</li>
+      <li class="booking-step active" data-step="1"><span class="booking-step__num">1</span><span data-i18n="booking.step1">Servicio</span></li>
+      <li class="booking-step" data-step="2"><span class="booking-step__num">2</span><span data-i18n="booking.step2">Fecha y hora</span></li>
+      <li class="booking-step" data-step="3"><span class="booking-step__num">3</span><span data-i18n="booking.step3">Tus datos</span></li>
     </ol>
 
     <!-- Panel: loading / error -->
-    <div id="booking-status" class="booking-status" hidden></div>
+    <div id="booking-status" class="booking-status" hidden translate="no"></div>
 
     <!-- STEP 1: Service selection -->
     <section class="booking-panel" id="panel-service" data-panel="1">
-      <div class="service-select-grid" id="service-select-grid">
+      <div class="service-select-grid" id="service-select-grid" translate="no">
         <!-- populated by js/booking.js -->
       </div>
 
       <div class="addon-select" id="addon-select" hidden>
-        <h4>¿Quieres agregar Nail Art & Diseños?</h4>
-        <div id="addon-options"></div>
+        <h4 data-i18n="booking.addonQuestion">¿Quieres agregar Nail Art & Diseños?</h4>
+        <div id="addon-options" translate="no"></div>
       </div>
 
       <div class="booking-actions">
-        <button type="button" class="btn btn--primary" id="btn-to-step-2" disabled>Continuar →</button>
+        <button type="button" class="btn btn--primary" id="btn-to-step-2" disabled data-i18n="booking.continue">Continuar →</button>
       </div>
     </section>
 
@@ -90,30 +92,30 @@
       <div class="datetime-grid">
         <div class="calendar-wrap">
           <div class="calendar-nav">
-            <button type="button" class="calendar-nav__btn" id="cal-prev" aria-label="Mes anterior">‹</button>
-            <div class="calendar-nav__label" id="cal-label"></div>
-            <button type="button" class="calendar-nav__btn" id="cal-next" aria-label="Mes siguiente">›</button>
+            <button type="button" class="calendar-nav__btn" id="cal-prev" aria-label="Mes anterior" data-i18n-attr="aria-label:booking.prevMonthLabel">‹</button>
+            <div class="calendar-nav__label" id="cal-label" translate="no"></div>
+            <button type="button" class="calendar-nav__btn" id="cal-next" aria-label="Mes siguiente" data-i18n-attr="aria-label:booking.nextMonthLabel">›</button>
           </div>
-          <div class="calendar-grid" id="calendar-grid"></div>
+          <div class="calendar-grid" id="calendar-grid" translate="no"></div>
         </div>
 
         <div class="slots-wrap">
-          <h4 id="slots-heading">Elige una fecha</h4>
-          <div class="slots-grid" id="slots-grid"></div>
+          <h4 id="slots-heading" data-i18n="booking.chooseDate">Elige una fecha</h4>
+          <div class="slots-grid" id="slots-grid" translate="no"></div>
         </div>
       </div>
 
       <div class="booking-actions">
-        <button type="button" class="btn btn--secondary" id="btn-back-1">← Atrás</button>
-        <button type="button" class="btn btn--primary" id="btn-to-step-3" disabled>Continuar →</button>
+        <button type="button" class="btn btn--secondary" id="btn-back-1" data-i18n="booking.back">← Atrás</button>
+        <button type="button" class="btn btn--primary" id="btn-to-step-3" disabled data-i18n="booking.continue">Continuar →</button>
       </div>
     </section>
 
     <!-- STEP 3: Contact + pay -->
     <section class="booking-panel" id="panel-contact" data-panel="3" hidden>
-      <div class="booking-summary" id="booking-summary"></div>
+      <div class="booking-summary" id="booking-summary" translate="no"></div>
 
-      <p class="booking-policy">
+      <p class="booking-policy" data-i18n="booking.policy">
         El depósito de $45 no es reembolsable y se descuenta del total de tu servicio.
         Si necesitas reagendar, avísanos con al menos 24 horas de anticipación y tu depósito
         se transfiere una vez a la nueva cita. Cancelaciones con menos de 24 horas o no
@@ -122,25 +124,25 @@
 
       <form id="booking-form" class="booking-form">
         <label>
-          Nombre completo
+          <span data-i18n="booking.nameLabel">Nombre completo</span>
           <input type="text" name="clientName" required autocomplete="name">
         </label>
         <label>
-          Teléfono
+          <span data-i18n="booking.phoneLabel">Teléfono</span>
           <input type="tel" name="clientPhone" required autocomplete="tel">
         </label>
         <label>
-          Email
+          <span data-i18n="booking.emailLabel">Email</span>
           <input type="email" name="clientEmail" required autocomplete="email">
         </label>
         <label>
-          Notas (opcional)
-          <textarea name="notes" rows="3" placeholder="Alguna preferencia o detalle para tu cita"></textarea>
+          <span data-i18n="booking.notesLabel">Notas (opcional)</span>
+          <textarea name="notes" rows="3" placeholder="Alguna preferencia o detalle para tu cita" data-i18n-attr="placeholder:booking.notesPlaceholder"></textarea>
         </label>
 
         <div class="booking-actions">
-          <button type="button" class="btn btn--secondary" id="btn-back-2">← Atrás</button>
-          <button type="submit" class="btn btn--gold" id="btn-pay">Pagar depósito y confirmar →</button>
+          <button type="button" class="btn btn--secondary" id="btn-back-2" data-i18n="booking.back">← Atrás</button>
+          <button type="submit" class="btn btn--gold" id="btn-pay" data-i18n="booking.payBtn">Pagar depósito y confirmar →</button>
         </div>
       </form>
     </section>
@@ -148,9 +150,9 @@
     <!-- SUCCESS -->
     <section class="booking-panel booking-success" id="panel-success" hidden>
       <div class="booking-success__icon">✓</div>
-      <h2>¡Tu cita quedó confirmada!</h2>
-      <p>Te enviamos los detalles a tu email. Te esperamos en Rosas Nails Art.</p>
-      <a href="index.html" class="btn btn--secondary">Volver al inicio</a>
+      <h2 data-i18n="booking.successTitle">¡Tu cita quedó confirmada!</h2>
+      <p data-i18n="booking.successText">Te enviamos los detalles a tu email. Te esperamos en Rosas Nails Art.</p>
+      <a href="index.html" class="btn btn--secondary" data-i18n="booking.backHome">Volver al inicio</a>
     </section>
 
   </div>
@@ -168,7 +170,7 @@
             <span class="nav-logo__tagline">Manassas, VA</span>
           </div>
         </a>
-        <p>Tu espacio de belleza y relajación en el corazón de Manassas, Virginia.</p>
+        <p data-i18n="footer.aboutShort">Tu espacio de belleza y relajación en el corazón de Manassas, Virginia.</p>
         <div class="footer-socials">
           <a href="https://www.facebook.com/share/1CFKVmjfkE/?mibextid=wwXIfr" target="_blank" rel="noopener" class="footer-social-link" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M14.5 8.5h2V5.2c-.35-.05-1.5-.2-2.85-.2-2.82 0-4.75 1.72-4.75 4.9v2.6H6v3.7h2.9V22h3.8v-5.8h2.85l.45-3.7h-3.3V9.9c0-1.07.3-1.4 1.4-1.4Z"/></svg></a>
           <a href="https://www.tiktok.com/@rosasnailsart6" target="_blank" rel="noopener" class="footer-social-link" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3v10.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M15 3a5 5 0 0 0 5 5"/></svg></a>
@@ -176,22 +178,22 @@
       </div>
 
       <div class="footer-col">
-        <h5>¿Preguntas?</h5>
+        <h5 data-i18n="footer.questionsHeader">¿Preguntas?</h5>
         <ul>
-          <li><a href="https://wa.me/15715138905?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20mi%20reserva" target="_blank" rel="noopener">Escríbenos por WhatsApp</a></li>
-          <li><a href="tel:+15715138905">Llamar</a></li>
+          <li><a href="https://wa.me/15715138905?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20mi%20reserva" target="_blank" rel="noopener" data-i18n="footer.whatsappLink">Escríbenos por WhatsApp</a></li>
+          <li><a href="tel:+15715138905" data-i18n="footer.callLink">Llamar</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h5>Contacto</h5>
+        <h5 data-i18n="footer.contactHeader">Contacto</h5>
         <div class="footer-contact-item">
           <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.2-5.9-6.2-10.5a6.2 6.2 0 1 1 12.4 0C18.2 15.1 12 21 12 21Z"/><circle cx="12" cy="10.3" r="2.2"/></svg></span>
           <span>7548 Diplomat Dr B, Suite 201, Manassas, VA 20109</span>
         </div>
         <div class="footer-contact-item">
           <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
-          <span>Lun–Vie: 9:30am – 6:30pm</span>
+          <span data-i18n="footer.hours">Lun–Vie: 9:30am – 6:30pm</span>
         </div>
         <div class="footer-contact-item">
           <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6.7 4h3l1.3 3.6-1.8 1.5a10.5 10.5 0 0 0 5.2 5.2l1.5-1.8L19.5 14v3a1.5 1.5 0 0 1-1.6 1.5A15 15 0 0 1 4.5 5.6 1.5 1.5 0 0 1 6.7 4Z"/></svg></span>
@@ -201,12 +203,13 @@
     </div>
 
     <div class="footer-bottom">
-      <p>© 2026 Rosas Nails Art · Todos los derechos reservados</p>
-      <p>Diseñado por <a href="https://www.instagram.com/hidopalab" target="_blank" rel="noopener">HidopaLab</a></p>
+      <p data-i18n="footer.rights">© 2026 Rosas Nails Art · Todos los derechos reservados</p>
+      <p><span data-i18n="footer.designedBy">Diseñado por</span> <a href="https://www.instagram.com/hidopalab" target="_blank" rel="noopener">HidopaLab</a></p>
     </div>
   </div>
 </footer>
 
+<script src="js/i18n.js"></script>
 <script src="js/main.js"></script>
 <script src="js/booking.js"></script>
 </body>
