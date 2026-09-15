@@ -7,11 +7,10 @@
 const $ = (s, ctx = document) => ctx.querySelector(s);
 const $$ = (s, ctx = document) => [...ctx.querySelectorAll(s)];
 
-const DOW_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const MONTH_LABELS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
+const t = (key) => (window.I18N ? window.I18N.t(key) : key);
+const DOW_LABELS = t('booking.js.dow');
+const MONTH_LABELS = t('booking.js.months');
+const LOCALE = t('booking.js.locale');
 // Días abiertos los define Maribel desde su panel (no hay un horario fijo) —
 // el calendario deja elegir cualquier día futuro dentro del horizonte, y el
 // servidor devuelve los horarios reales (vacío si ese día no está abierto).
@@ -191,7 +190,7 @@ async function loadAvailableDays() {
   }
 
   if (!state.availableDates.size) {
-    $('#slots-grid').innerHTML = '<p class="slots-empty">No hay citas disponibles en las próximas semanas. Escríbenos por WhatsApp.</p>';
+    $('#slots-grid').innerHTML = `<p class="slots-empty">${t('booking.js.noAvailability')}</p>`;
   }
 
   renderCalendar();
@@ -253,8 +252,8 @@ async function selectDate(key) {
   renderCalendar();
 
   const slotsGrid = $('#slots-grid');
-  $('#slots-heading').textContent = `Horarios disponibles — ${key}`;
-  slotsGrid.innerHTML = '<p class="slots-empty">Buscando horarios…</p>';
+  $('#slots-heading').textContent = t('booking.js.slotsHeading').replace('{date}', key);
+  slotsGrid.innerHTML = `<p class="slots-empty">${t('booking.js.searchingSlots')}</p>`;
 
   try {
     const duration = totalDurationMinutes();
@@ -263,20 +262,20 @@ async function selectDate(key) {
     const { slots } = await res.json();
     renderSlots(slots);
   } catch (err) {
-    slotsGrid.innerHTML = '<p class="slots-empty">No se pudo cargar la disponibilidad. Intenta de nuevo.</p>';
+    slotsGrid.innerHTML = `<p class="slots-empty">${t('booking.js.availabilityError')}</p>`;
   }
 }
 
 function renderSlots(slots) {
   const grid = $('#slots-grid');
   if (!slots.length) {
-    grid.innerHTML = '<p class="slots-empty">No hay horarios disponibles este día. Prueba otra fecha.</p>';
+    grid.innerHTML = `<p class="slots-empty">${t('booking.js.noSlotsDay')}</p>`;
     return;
   }
   grid.innerHTML = slots
     .map((iso) => {
-      const t = new Date(iso).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
-      return `<button type="button" class="slot-btn" data-iso="${iso}">${t}</button>`;
+      const label = new Date(iso).toLocaleTimeString(LOCALE, { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+      return `<button type="button" class="slot-btn" data-iso="${iso}">${label}</button>`;
     })
     .join('');
 
@@ -293,16 +292,16 @@ function renderSlots(slots) {
 // ── Step 3: summary + submit ─────────────────────
 function renderSummary() {
   const { label, price, deposit } = selectedServicesSummary();
-  const when = new Date(state.selectedSlot).toLocaleString('es-US', {
+  const when = new Date(state.selectedSlot).toLocaleString(LOCALE, {
     timeZone: 'America/New_York',
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     hour: 'numeric', minute: '2-digit',
   });
   $('#booking-summary').innerHTML = `
-    <div><b>Servicio:</b> ${label}</div>
-    <div><b>Fecha:</b> ${when}</div>
-    <div><b>Precio total:</b> ${money(price)}</div>
-    <div><b>Depósito a pagar ahora:</b> ${money(deposit)}</div>
+    <div><b>${t('booking.js.summaryService')}</b> ${label}</div>
+    <div><b>${t('booking.js.summaryDate')}</b> ${when}</div>
+    <div><b>${t('booking.js.summaryPrice')}</b> ${money(price)}</div>
+    <div><b>${t('booking.js.summaryDeposit')}</b> ${money(deposit)}</div>
   `;
 }
 
@@ -311,7 +310,7 @@ async function submitBooking(e) {
   clearStatus();
   const btn = $('#btn-pay');
   btn.disabled = true;
-  btn.textContent = 'Procesando…';
+  btn.textContent = t('booking.js.processing');
 
   const form = e.target;
   const payload = {
@@ -333,9 +332,9 @@ async function submitBooking(e) {
     const data = await res.json();
 
     if (!res.ok) {
-      showStatus(data.error || 'No se pudo completar la reserva.');
+      showStatus(data.error || t('booking.js.bookingFailed'));
       btn.disabled = false;
-      btn.textContent = 'Pagar depósito y confirmar →';
+      btn.textContent = t('booking.payBtn');
       return;
     }
 
@@ -346,9 +345,9 @@ async function submitBooking(e) {
 
     showSuccess();
   } catch (err) {
-    showStatus('Ocurrió un error. Intenta de nuevo.');
+    showStatus(t('booking.js.genericError'));
     btn.disabled = false;
-    btn.textContent = 'Pagar depósito y confirmar →';
+    btn.textContent = t('booking.payBtn');
   }
 }
 
@@ -368,10 +367,10 @@ function initBookingWizard() {
     return;
   }
   if (params.get('cancelled') === '1') {
-    showStatus('El pago se canceló. Puedes intentar reservar de nuevo cuando quieras.', false);
+    showStatus(t('booking.js.cancelledNotice'), false);
   }
 
-  loadServices().catch(() => showStatus('No se pudieron cargar los servicios. Recarga la página.'));
+  loadServices().catch(() => showStatus(t('booking.js.servicesLoadError')));
   renderCalendar();
 
   $('#btn-to-step-2').addEventListener('click', () => {
