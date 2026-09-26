@@ -25,7 +25,20 @@
     setText('hero-subtitle', hero.subtitle);
     if (hero.photoUrl) {
       const img = document.getElementById('hero-photo-img');
+      const heroPhoto = document.getElementById('hero-photo');
       if (img) {
+        // Stays invisible (opacity via CSS) until the photo has actually
+        // finished downloading, then fades in while the CSS placeholder
+        // (gradient + nail illustration) fades out — so the swap never
+        // shows a half-loaded or broken image over the placeholder.
+        img.addEventListener(
+          'load',
+          () => {
+            img.classList.add('is-loaded');
+            if (heroPhoto) heroPhoto.classList.add('hero-photo--photo-ready');
+          },
+          { once: true }
+        );
         img.src = hero.photoUrl;
         img.hidden = false;
       }
@@ -121,8 +134,7 @@
     }
   }
 
-  fetch('/api/site-content')
-    .then((r) => r.json())
+  (window.__siteContentPromise || fetch('/api/site-content').then((r) => r.json()))
     .then(({ content }) => applyContent(content || {}))
     .catch(() => {
       /* keep the hardcoded defaults already in the page */
