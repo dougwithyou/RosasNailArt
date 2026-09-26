@@ -14,6 +14,11 @@ function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+// Public OAuth client ID (safe to ship to the browser — mirrors the same
+// constant in js/admin.js), needed here to deauthorize the connected
+// account on Stripe's side when Maribel disconnects.
+const STRIPE_CONNECT_CLIENT_ID = 'ca_VDHv53UhBTXx0icWWEtr9qsfqwWcAPu5';
+
 function dateKey(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -242,6 +247,52 @@ async function handleStripeBalance(req, res) {
   }
 }
 
+// Lets Maribel disconnect her current Stripe account (e.g. to connect a
+// different one). Revokes our platform's access on Stripe's side, then
+// clears the stored account id so booking.html's checkout falls back to
+// the platform's own test account until she connects a new one.
+async function handleStripeDisconnect(req, res) {
+  const { data: settings, error } = await getSupabase()
+    .from('business_settings')
+    .select('stripe_account_id')
+    .eq('id', true)
+    .single();
+
+  if (error) {
+    res.status(500).json({ error: 'No se pudo verificar la conexión con Stripe' });
+    return;
+  }
+
+  if (!settings?.stripe_account_id) {
+    res.status(200).json({ connected: false });
+    return;
+  }
+
+  try {
+    await getStripe().oauth.deauthorize({
+      client_id: STRIPE_CONNECT_CLIENT_ID,
+      stripe_user_id: settings.stripe_account_id,
+    });
+  } catch (err) {
+    // Keep going even if Stripe's side is already disconnected (e.g. she
+    // revoked access from her own Stripe dashboard first) — our own
+    // record still needs clearing either way.
+    console.error('Stripe OAuth deauthorize failed', err);
+  }
+
+  const { error: dbError } = await getSupabase()
+    .from('business_settings')
+    .update({ stripe_account_id: null, stripe_connected_at: null })
+    .eq('id', true);
+
+  if (dbError) {
+    res.status(500).json({ error: 'No se pudo desconectar la cuenta de Stripe' });
+    return;
+  }
+
+  res.status(200).json({ connected: false });
+}
+
 // Stripe redirects the browser here after Maribel approves the OAuth
 // connection — a plain unauthenticated GET, not one of our normal
 // Bearer-token AJAX calls. The "state" param carries her Supabase access
@@ -277,16 +328,32 @@ async function handleStripeConnectCallback(req, res) {
 }
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
-
   const { view } = req.query;
 
   // Handles its own auth (via the state param) since it's a browser
   // redirect from Stripe, not an authenticated AJAX call.
-  if (view === 'stripe-connect-callback') return handleStripeConnectCallback(req, res);
+  if (view === 'stripe-connect-callback') {
+    if (req.method !== 'GET') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    return handleStripeConnectCallback(req, res);
+  }
+
+  if (view === 'stripe-disconnect') {
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    const user = await requireRole(req, res, ['owner', 'superadmin']);
+    if (!user) return;
+    return handleStripeDisconnect(req, res);
+  }
+
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
 
   const user = await requireRole(req, res, ['owner', 'superadmin']);
   if (!user) return;
