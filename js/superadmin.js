@@ -142,6 +142,32 @@ function openCropModal(file, aspectRatio, outputSize) {
   });
 }
 
+// Re-encodes at progressively lower JPEG quality until the blob fits
+// under maxBytes (or the lowest quality step is reached) — photos
+// uploaded straight from a phone camera would otherwise ship at a fixed
+// quality regardless of how large the cropped photo actually is.
+function canvasToCompressedBlob(canvas, maxBytes) {
+  const qualities = [0.85, 0.75, 0.65, 0.55, 0.45];
+  return new Promise((resolve) => {
+    let i = 0;
+    const attempt = () => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size <= maxBytes || i >= qualities.length - 1) {
+            resolve(blob);
+            return;
+          }
+          i += 1;
+          attempt();
+        },
+        'image/jpeg',
+        qualities[i]
+      );
+    };
+    attempt();
+  });
+}
+
 function closeCropModal() {
   $('#crop-modal').hidden = true;
   if (cropper) {
@@ -167,12 +193,12 @@ function initCropModal() {
       height: cropOutputSize.h,
       imageSmoothingQuality: 'high',
     });
-    canvas.toBlob((blob) => {
+    canvasToCompressedBlob(canvas, 300 * 1024).then((blob) => {
       const resolve = cropResolve;
       cropResolve = null;
       closeCropModal();
       if (resolve) resolve(blob);
-    }, 'image/jpeg', 0.9);
+    });
   });
 }
 
