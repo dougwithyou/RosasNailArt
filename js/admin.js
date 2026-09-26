@@ -280,6 +280,7 @@ function renderTodayAppointments(list) {
           <button type="button" data-notify="late">Voy tarde</button>
           <button type="button" data-notify="custom">Mensaje</button>
           <button type="button" data-cancel class="danger-link">Cancelar</button>
+          <button type="button" data-delete class="danger-link">Borrar</button>
         </div>
       </div>
     `;
@@ -292,9 +293,9 @@ function renderTodayAppointments(list) {
     $$('[data-notify]', item).forEach((btn) => {
       btn.addEventListener('click', () => sendAppointmentNotice({ id: t.id, client_name: t.clientName }, btn.dataset.notify));
     });
-    $('[data-cancel]', item)?.addEventListener('click', () =>
-      cancelAppointment({ id: t.id, client_name: t.clientName, status: t.status }, () => loadStats())
-    );
+    const apptRef = { id: t.id, client_name: t.clientName, status: t.status };
+    $('[data-cancel]', item)?.addEventListener('click', () => cancelAppointment(apptRef, () => loadStats()));
+    $('[data-delete]', item)?.addEventListener('click', () => deleteAppointment(apptRef, () => loadStats()));
     $('[data-open-client]', item)?.addEventListener('click', (e) => openClientPanel(e.target.dataset.openClient || t.phoneKey));
   });
 }
@@ -316,15 +317,39 @@ async function cancelAppointment(appointment, onDone) {
   }
 }
 
+// Permanently deletes an appointment (no Stripe refund) — for wiping test
+// bookings so they stop counting toward the Inicio revenue stats. Use
+// "Cancelar" instead for a real booking that actually charged a deposit.
+async function deleteAppointment(appointment, onDone) {
+  if (!confirm(`¿Borrar permanentemente la cita de ${appointment.client_name}? Esto no se puede deshacer y no reembolsa ningún cargo — usa "Cancelar" si el depósito fue real.`)) {
+    return;
+  }
+  try {
+    await apiFetch('/api/admin/appointments', {
+      method: 'DELETE',
+      body: JSON.stringify({ id: appointment.id }),
+    });
+    if (onDone) onDone();
+  } catch (err) {
+    alert(err.message || 'No se pudo borrar la cita.');
+  }
+}
+
 // ── Agenda ────────────────────────────────────────
 function appointmentActionsHtml(a) {
-  if (a.status === 'cancelled') return '';
   return `
     <div class="agenda-item__actions">
+      ${
+        a.status === 'cancelled'
+          ? ''
+          : `
       <button type="button" data-notify="reschedule">Reagendar</button>
       <button type="button" data-notify="late">Voy tarde</button>
       <button type="button" data-notify="custom">Mensaje</button>
       <button type="button" data-cancel class="danger-link">Cancelar</button>
+      `
+      }
+      <button type="button" data-delete class="danger-link">Borrar</button>
     </div>
   `;
 }
@@ -334,6 +359,7 @@ function wireAppointmentActions(container, a, onCancelled) {
     btn.addEventListener('click', () => sendAppointmentNotice(a, btn.dataset.notify));
   });
   $('[data-cancel]', container)?.addEventListener('click', () => cancelAppointment(a, onCancelled));
+  $('[data-delete]', container)?.addEventListener('click', () => deleteAppointment(a, onCancelled));
 }
 
 function renderDayCard(day, dayAppointments, dayOpenSlots, onCancelled) {
@@ -540,6 +566,7 @@ function openWeekPopover(a, anchorEl) {
         <button type="button" data-cancel class="danger-link">Cancelar cita</button>
       `
       }
+      <button type="button" data-delete class="danger-link">Borrar cita</button>
     </div>
   `;
   $$('[data-notify]', body).forEach((btn) => {
@@ -551,6 +578,10 @@ function openWeekPopover(a, anchorEl) {
   $('[data-cancel]', body)?.addEventListener('click', () => {
     pop.hidden = true;
     cancelAppointment(a, () => loadAgenda());
+  });
+  $('[data-delete]', body)?.addEventListener('click', () => {
+    pop.hidden = true;
+    deleteAppointment(a, () => loadAgenda());
   });
 
   const rect = anchorEl.getBoundingClientRect();
@@ -1075,6 +1106,20 @@ function renderClientApptList(container, appointments, isUpcoming) {
     .join('');
 }
 
+// Permanently deletes a client and every appointment of hers — for wiping
+// test clients so they stop showing up in this list and stop counting
+// toward the Inicio revenue stats.
+async function deleteClient(phoneKey, name) {
+  if (!confirm(`¿Borrar permanentemente a ${name} y todas sus citas? Esto no se puede deshacer.`)) return;
+  try {
+    await apiFetch(`/api/admin/dashboard?view=client-delete&phone=${encodeURIComponent(phoneKey)}`, { method: 'DELETE' });
+    $('#client-detail').innerHTML = '<p class="agenda-empty">Selecciona una clienta.</p>';
+    loadClients();
+  } catch (err) {
+    alert(err.message || 'No se pudo borrar a la clienta.');
+  }
+}
+
 async function selectClient(phoneKey) {
   const detail = $('#client-detail');
   detail.innerHTML = '<p class="agenda-empty">Cargando…</p>';
@@ -1085,6 +1130,7 @@ async function selectClient(phoneKey) {
       <div class="client-detail__head">
         <h3>${client.name}</h3>
         <p class="client-detail__contact">${client.phone}${emailsLine ? ' · ' + emailsLine : ''}</p>
+        <button type="button" class="btn btn--secondary" id="btn-delete-client">Borrar clienta</button>
       </div>
       <div class="client-detail__section">
         <h4>Próximas citas</h4>
@@ -1105,6 +1151,7 @@ async function selectClient(phoneKey) {
     `;
     renderClientApptList($('#client-upcoming'), upcoming, true);
     renderClientApptList($('#client-past'), [...past].reverse(), false);
+    $('#btn-delete-client').addEventListener('click', () => deleteClient(phoneKey, client.name));
 
     $('#client-message-form').addEventListener('submit', async (e) => {
       e.preventDefault();

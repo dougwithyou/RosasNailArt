@@ -215,6 +215,39 @@ async function handleClients(req, res) {
   res.status(200).json({ clients });
 }
 
+// Permanently removes a client and every appointment of hers — for wiping
+// test clients so they stop appearing in the Clientes list and stop
+// counting toward the Inicio revenue stats. Does not touch Stripe; only
+// meant for bookings that never had a real charge.
+async function handleClientDelete(req, res) {
+  const { phone } = req.query;
+  if (!phone) {
+    res.status(400).json({ error: 'Falta el teléfono de la clienta' });
+    return;
+  }
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from('appointments').select('id, client_phone');
+  if (error) {
+    res.status(500).json({ error: 'No se pudo cargar las citas de la clienta' });
+    return;
+  }
+
+  const ids = (data || []).filter((a) => normalizePhone(a.client_phone) === phone).map((a) => a.id);
+  if (!ids.length) {
+    res.status(404).json({ error: 'Clienta no encontrada' });
+    return;
+  }
+
+  const { error: delError } = await supabase.from('appointments').delete().in('id', ids);
+  if (delError) {
+    res.status(500).json({ error: 'No se pudo borrar a la clienta' });
+    return;
+  }
+
+  res.status(200).json({ deleted: true, count: ids.length });
+}
+
 async function handleStripeBalance(req, res) {
   const { data: settings, error } = await getSupabase()
     .from('business_settings')
@@ -348,6 +381,16 @@ module.exports = async function handler(req, res) {
     const user = await requireRole(req, res, ['owner', 'superadmin']);
     if (!user) return;
     return handleStripeDisconnect(req, res);
+  }
+
+  if (view === 'client-delete') {
+    if (req.method !== 'DELETE') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+    const user = await requireRole(req, res, ['owner', 'superadmin']);
+    if (!user) return;
+    return handleClientDelete(req, res);
   }
 
   if (req.method !== 'GET') {
