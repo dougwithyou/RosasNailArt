@@ -173,6 +173,26 @@ async function handleCancel(req, res, supabase) {
   res.status(200).json({ cancelled: true, refunded, appointment: updated });
 }
 
+// Permanently removes an appointment row — for wiping test/junk bookings
+// so they stop counting toward the Inicio revenue stats. Unlike "cancel",
+// this does not touch Stripe (no refund), so it should only be used on
+// appointments that never had a real charge.
+async function handleDelete(req, res, supabase) {
+  const { id } = req.body || {};
+  if (!id) {
+    res.status(400).json({ error: 'Falta el id de la cita' });
+    return;
+  }
+
+  const { error } = await supabase.from('appointments').delete().eq('id', id);
+  if (error) {
+    res.status(500).json({ error: 'No se pudo borrar la cita' });
+    return;
+  }
+
+  res.status(200).json({ deleted: true });
+}
+
 module.exports = async function handler(req, res) {
   const user = await requireRole(req, res, ['owner', 'superadmin']);
   if (!user) return;
@@ -181,6 +201,7 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'GET') return handleList(req, res, supabase);
   if (req.method === 'POST') return handleManualCreate(req, res, supabase);
+  if (req.method === 'DELETE') return handleDelete(req, res, supabase);
   if (req.method === 'PATCH') {
     const { action } = req.body || {};
     if (action === 'cancel') return handleCancel(req, res, supabase);
