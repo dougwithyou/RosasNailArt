@@ -202,6 +202,19 @@ async function connectStripe() {
   location.href = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
 }
 
+async function disconnectStripe() {
+  const ok = confirm('¿Desconectar la cuenta de Stripe actual? Las clientas no podrán pagar depósitos hasta que conectes una cuenta nueva.');
+  if (!ok) return;
+  const wrap = $('#stripe-status');
+  wrap.innerHTML = '<p class="agenda-empty">Desconectando…</p>';
+  try {
+    await apiFetch('/api/admin/dashboard?view=stripe-disconnect', { method: 'POST' });
+  } catch (err) {
+    alert('No se pudo desconectar la cuenta de Stripe. Intenta de nuevo.');
+  }
+  loadStripeStatus();
+}
+
 async function loadStripeStatus() {
   const wrap = $('#stripe-status');
   wrap.innerHTML = '<p class="agenda-empty">Cargando…</p>';
@@ -238,7 +251,9 @@ async function loadStripeStatus() {
         Stripe deposita automáticamente a tu cuenta bancaria según tu calendario de pagos —
         puedes verlo y ajustarlo entrando a tu <a href="https://dashboard.stripe.com" target="_blank" rel="noopener">dashboard de Stripe</a>.
       </p>
+      <button type="button" class="btn btn--secondary" id="btn-disconnect-stripe">Desconectar cuenta de Stripe</button>
     `;
+    $('#btn-disconnect-stripe').addEventListener('click', disconnectStripe);
   } catch (err) {
     wrap.innerHTML = '<p class="agenda-empty">No se pudo cargar el estado de Stripe.</p>';
   }
