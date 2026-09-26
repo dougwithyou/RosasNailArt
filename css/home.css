@@ -156,16 +156,26 @@
 }
 
 /* Real photo, when the superadmin CMS sets one — sits above the CSS
-   illustration below it but under the badge/rating chip overlays. */
+   illustration below it but under the badge/rating chip overlays. Stays
+   invisible (not just unhidden) until it has actually finished loading —
+   .is-loaded is only added on the img's load event — so the placeholder
+   underneath is never covered by a half-downloaded or broken image. */
 .hero-photo__img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity .5s var(--ease-smooth, ease);
+}
+.hero-photo__img.is-loaded {
+  opacity: 1;
 }
 
-/* Elegant nail art illustration using CSS */
+/* Elegant nail art illustration using CSS — the loading placeholder while
+   the real photo (above) downloads. Fades out once .hero-photo--photo-ready
+   is added, instead of being abruptly covered. */
 .hero-photo__art {
   position: absolute;
   inset: 0;
@@ -174,9 +184,10 @@
     radial-gradient(circle at 80% 70%, rgba(247,132,230,.18) 0%, transparent 45%),
     radial-gradient(circle at 60% 50%, rgba(246,233,216,.4) 0%, transparent 60%),
     linear-gradient(155deg, #f9ede3 0%, #f5dce9 40%, #f9ede3 80%, #f2e6f5 100%);
+  transition: opacity .5s var(--ease-smooth, ease);
 }
 
-/* Decorative nail shapes */
+/* Decorative nail shapes — same placeholder-fade treatment as .hero-photo__art. */
 .hero-photo__nails {
   position: absolute;
   inset: 0;
@@ -185,6 +196,12 @@
   justify-content: center;
   gap: 14px;
   padding: 40px 30px 80px;
+  transition: opacity .5s var(--ease-smooth, ease);
+}
+
+.hero-photo--photo-ready .hero-photo__art,
+.hero-photo--photo-ready .hero-photo__nails {
+  opacity: 0;
 }
 
 .nail-finger {

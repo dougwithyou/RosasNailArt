@@ -8,6 +8,11 @@
   <meta name="theme-color" content="#161316">
   <link rel="canonical" href="https://rosasnailart.vercel.app/">
 
+  <!-- Fired as early as possible (before CSS/JS finish loading) so the hero
+       photo URL — and the download of the photo itself — starts sooner,
+       instead of waiting for js/site-content.js at the bottom of the page. -->
+  <script>window.__siteContentPromise = fetch('/api/site-content').then(function (r) { return r.json(); }).catch(function () { return { content: {} }; });</script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
@@ -81,7 +86,7 @@
       <div class="nail-palm" style="width:36px;border-radius:0 0 8px 8px;height:32px"></div>
     </div>
   </div>
-  <img id="hero-photo-img" class="hero-photo__img" alt="" hidden>
+  <img id="hero-photo-img" class="hero-photo__img" alt="" fetchpriority="high" decoding="async" hidden>
   <div class="hero-photo__badge"><img src="img/logo-rose.png" alt="" class="hero-photo__badge-img"></div>
   <div class="hero-photo__chip" data-i18n-html="hero.chipHtml">
     <b>+500</b> clientas felices desde que abrimos en Manassas
