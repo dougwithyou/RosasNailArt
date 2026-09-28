@@ -13,7 +13,6 @@
   const spacer = document.getElementById('hero-scroll-spacer');
   const photo = document.getElementById('hero-photo');
   const slot = document.getElementById('hero-photo-slot');
-  const heroSection = document.getElementById('top');
   const header = document.getElementById('site-header');
   if (!spacer || !photo || !slot) return;
 
@@ -47,6 +46,13 @@
   let targetRadius = 26;
   let docked = false;
   let ticking = false;
+  // Absolute document-Y coordinate of the docked photo's bottom edge,
+  // captured once right when it docks (see dock() below) rather than
+  // re-measured via getBoundingClientRect() on every scroll frame — iOS
+  // Safari can report a stale/incorrect rect for an element while its own
+  // address-bar chrome is animating open/closed mid-scroll, which was
+  // leaving the nav bar stuck hidden well past the hero on some phones.
+  let dockedPhotoBottomY = null;
 
   function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -73,15 +79,17 @@
   // Once docked, it reveals the nav bar as soon as the photo itself has
   // scrolled past — not the whole hero section (photo + heading + copy
   // text, which stack tall on mobile and would keep the nav bar hidden
-  // for several screens' worth of extra scrolling otherwise).
+  // for several screens' worth of extra scrolling otherwise). Compares
+  // against the scrollY-based threshold captured in dock(), not a live
+  // getBoundingClientRect(), so it can't get stuck by a stale rect while
+  // iOS Safari's chrome is animating.
   function updateHeaderVisibility() {
     if (!header) return;
-    const ref = docked ? photo : heroSection;
-    if (!ref) {
-      header.classList.remove('hero-hidden');
+    if (!docked || dockedPhotoBottomY == null) {
+      header.classList.add('hero-hidden');
       return;
     }
-    const pastHero = ref.getBoundingClientRect().bottom <= navHeightPx();
+    const pastHero = window.scrollY + navHeightPx() >= dockedPhotoBottomY;
     header.classList.toggle('hero-hidden', !pastHero);
   }
 
@@ -136,10 +144,13 @@
     }
     if (chip) chip.style.opacity = 1;
     if (badge) badge.style.opacity = 1;
+    const rect = photo.getBoundingClientRect();
+    dockedPhotoBottomY = rect.bottom + window.scrollY;
   }
 
   function undock() {
     docked = false;
+    dockedPhotoBottomY = null;
     photo.replaceWith(slot);
     photo.classList.remove('hero-photo--static');
     document.body.appendChild(photo);
