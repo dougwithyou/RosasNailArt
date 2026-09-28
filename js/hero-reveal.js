@@ -3,9 +3,9 @@
  * On mobile, the hero photo opens full-screen with a greeting; scrolling
  * past the first screen shrinks and docks it into its normal slot in the
  * hero grid, and the nav bar stays hidden until the visitor scrolls past
- * the whole hero section into the next one. Desktop and
- * prefers-reduced-motion both skip straight to the plain, non-animated
- * layout (the pre-existing design, nav bar always visible).
+ * the docked photo itself. Desktop and prefers-reduced-motion both skip
+ * straight to the plain, non-animated layout (the pre-existing design,
+ * nav bar always visible).
  */
 (function () {
   'use strict';
@@ -69,16 +69,19 @@
     return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 72;
   }
 
-  // Keeps the nav bar hidden through the whole hero section — full-screen
-  // intro, shrink, and the docked-in-place resting state — only revealing
-  // it once the visitor has scrolled past the hero into the next section.
+  // Keeps the nav bar hidden through the full-screen intro and shrink.
+  // Once docked, it reveals the nav bar as soon as the photo itself has
+  // scrolled past — not the whole hero section (photo + heading + copy
+  // text, which stack tall on mobile and would keep the nav bar hidden
+  // for several screens' worth of extra scrolling otherwise).
   function updateHeaderVisibility() {
     if (!header) return;
-    if (!heroSection) {
+    const ref = docked ? photo : heroSection;
+    if (!ref) {
       header.classList.remove('hero-hidden');
       return;
     }
-    const pastHero = heroSection.getBoundingClientRect().bottom <= navHeightPx();
+    const pastHero = ref.getBoundingClientRect().bottom <= navHeightPx();
     header.classList.toggle('hero-hidden', !pastHero);
   }
 
