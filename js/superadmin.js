@@ -55,14 +55,32 @@ function showLoggedIn() {
   loadContent();
 }
 
+// Only 'superadmin' (agency) may use the site-content CMS — Maribel's
+// 'owner' account logging in here by mistake gets signed back out
+// immediately instead of landing on a dashboard whose save calls
+// silently fail with 403s.
+async function handleSession(session) {
+  if (!session) {
+    showLoggedOut();
+    return;
+  }
+  const role = session.user?.app_metadata?.role;
+  if (role !== 'superadmin') {
+    const errorEl = $('#login-error');
+    errorEl.textContent = 'Esta cuenta no tiene acceso al panel de superadmin.';
+    errorEl.hidden = false;
+    await sb.auth.signOut();
+    return;
+  }
+  showLoggedIn();
+}
+
 async function initAuth() {
   const { data } = await sb.auth.getSession();
-  if (data.session) showLoggedIn();
-  else showLoggedOut();
+  await handleSession(data.session);
 
   sb.auth.onAuthStateChange((_event, session) => {
-    if (session) showLoggedIn();
-    else showLoggedOut();
+    handleSession(session);
   });
 
   $('#login-form').addEventListener('submit', async (e) => {
