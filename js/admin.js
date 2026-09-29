@@ -132,6 +132,7 @@ async function handleSession(session) {
     await sb.auth.signOut();
     return;
   }
+  $('#link-to-cms').hidden = role !== 'superadmin';
   showLoggedIn();
 }
 
