@@ -112,14 +112,35 @@ function showLoggedIn() {
   loadServices();
 }
 
+// Both 'owner' (Maribel) and 'superadmin' (agency) can use this panel —
+// but any other authenticated Supabase user (e.g. logging in here by
+// mistake with credentials meant for a different panel) gets signed back
+// out immediately instead of landing on a dashboard that silently fails
+// its API calls with 403s.
+const ADMIN_ALLOWED_ROLES = ['owner', 'superadmin'];
+
+async function handleSession(session) {
+  if (!session) {
+    showLoggedOut();
+    return;
+  }
+  const role = session.user?.app_metadata?.role;
+  if (!ADMIN_ALLOWED_ROLES.includes(role)) {
+    const errorEl = $('#login-error');
+    errorEl.textContent = 'Esta cuenta no tiene acceso al panel de Maribel.';
+    errorEl.hidden = false;
+    await sb.auth.signOut();
+    return;
+  }
+  showLoggedIn();
+}
+
 async function initAuth() {
   const { data } = await sb.auth.getSession();
-  if (data.session) showLoggedIn();
-  else showLoggedOut();
+  await handleSession(data.session);
 
   sb.auth.onAuthStateChange((_event, session) => {
-    if (session) showLoggedIn();
-    else showLoggedOut();
+    handleSession(session);
   });
 
   $('#login-form').addEventListener('submit', async (e) => {
