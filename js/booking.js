@@ -28,6 +28,7 @@ const state = {
   step: 1,
   availableDates: new Set(), // dates (within the horizon) with at least one open slot
   availabilityLoaded: false,
+  paymentPolicy: 'client_choice', // set by Maribel — 'deposit_only' | 'full_only' | 'client_choice'
 };
 
 function startOfMonth(d) {
@@ -68,10 +69,28 @@ function goToStep(step) {
 async function loadServices() {
   const res = await fetch('/api/services');
   if (!res.ok) throw new Error('services');
-  const { services } = await res.json();
+  const { services, paymentPolicy } = await res.json();
   state.services = services.filter((s) => s.category === 'service');
   state.addons = services.filter((s) => s.category === 'addon');
+  state.paymentPolicy = paymentPolicy || 'client_choice';
   renderServiceGrid();
+  applyPaymentPolicy();
+}
+
+// Hides the payment choice entirely when Maribel has forced one option —
+// there's nothing to pick, so showing a single greyed radio would just
+// confuse the client. Otherwise leaves both options visible as usual.
+function applyPaymentPolicy() {
+  const fieldset = $('#payment-choice');
+  if (state.paymentPolicy === 'deposit_only') {
+    fieldset.hidden = true;
+    $('input[name=paymentType][value=deposit]').checked = true;
+  } else if (state.paymentPolicy === 'full_only') {
+    fieldset.hidden = true;
+    $('input[name=paymentType][value=full]').checked = true;
+  } else {
+    fieldset.hidden = false;
+  }
 }
 
 function renderServiceGrid() {

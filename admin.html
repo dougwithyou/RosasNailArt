@@ -137,6 +137,26 @@
           </div>
 
           <div class="panel-card">
+            <h3>Política de pago</h3>
+            <p class="admin-note">Elige qué puede pagar la clienta al reservar en el sitio.</p>
+            <form id="payment-policy-form" class="admin-form">
+              <label class="payment-policy-option">
+                <input type="radio" name="paymentPolicy" value="client_choice">
+                <span>Que la clienta elija entre depósito o pago total</span>
+              </label>
+              <label class="payment-policy-option">
+                <input type="radio" name="paymentPolicy" value="deposit_only">
+                <span>Solo puede pagar el depósito</span>
+              </label>
+              <label class="payment-policy-option">
+                <input type="radio" name="paymentPolicy" value="full_only">
+                <span>Solo puede pagar el total</span>
+              </label>
+              <button type="submit" class="btn btn--secondary btn--sm">Guardar</button>
+            </form>
+          </div>
+
+          <div class="panel-card">
             <h3>Citas de hoy</h3>
             <div id="today-appointments-list" class="today-appointments-list"></div>
           </div>

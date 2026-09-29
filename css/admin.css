@@ -102,6 +102,22 @@
 .admin-form select:focus,
 .admin-form textarea:focus { outline: none; border-color: var(--color-gold); }
 
+.payment-policy-option {
+  flex-direction: row !important;
+  align-items: center;
+  gap: var(--space-3) !important;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: var(--weight-regular) !important;
+}
+.payment-policy-option input { accent-color: var(--color-gold); }
+.payment-policy-option:has(input:checked) {
+  border-color: var(--color-gold);
+  color: var(--color-ink);
+}
+
 .admin-note {
   font-size: var(--text-sm);
   color: var(--color-ink-soft);

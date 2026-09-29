@@ -248,6 +248,31 @@ async function handleClientDelete(req, res) {
   res.status(200).json({ deleted: true, count: ids.length });
 }
 
+const PAYMENT_POLICIES = ['deposit_only', 'full_only', 'client_choice'];
+
+async function handleGetPaymentPolicy(req, res) {
+  const { data, error } = await getSupabase().from('business_settings').select('payment_policy').eq('id', true).maybeSingle();
+  if (error) {
+    res.status(500).json({ error: 'No se pudo cargar la política de pago' });
+    return;
+  }
+  res.status(200).json({ paymentPolicy: data?.payment_policy || 'client_choice' });
+}
+
+async function handleSetPaymentPolicy(req, res) {
+  const { paymentPolicy } = req.body || {};
+  if (!PAYMENT_POLICIES.includes(paymentPolicy)) {
+    res.status(400).json({ error: 'Política de pago inválida' });
+    return;
+  }
+  const { error } = await getSupabase().from('business_settings').update({ payment_policy: paymentPolicy }).eq('id', true);
+  if (error) {
+    res.status(500).json({ error: 'No se pudo guardar la política de pago' });
+    return;
+  }
+  res.status(200).json({ paymentPolicy });
+}
+
 async function handleStripeBalance(req, res) {
   const { data: settings, error } = await getSupabase()
     .from('business_settings')
@@ -393,6 +418,12 @@ module.exports = async function handler(req, res) {
     return handleClientDelete(req, res);
   }
 
+  if (view === 'payment-policy' && req.method === 'POST') {
+    const user = await requireRole(req, res, ['owner', 'superadmin']);
+    if (!user) return;
+    return handleSetPaymentPolicy(req, res);
+  }
+
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -404,6 +435,7 @@ module.exports = async function handler(req, res) {
   if (view === 'clients') return handleClients(req, res);
   if (view === 'stats') return handleStats(req, res);
   if (view === 'stripe-balance') return handleStripeBalance(req, res);
+  if (view === 'payment-policy') return handleGetPaymentPolicy(req, res);
 
   res.status(400).json({ error: 'Falta el parámetro view' });
 };
