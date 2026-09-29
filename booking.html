@@ -143,6 +143,20 @@
           <textarea name="notes" rows="3" placeholder="Alguna preferencia o detalle para tu cita" data-i18n-attr="placeholder:booking.notesPlaceholder"></textarea>
         </label>
 
+        <fieldset class="payment-choice" id="payment-choice">
+          <legend data-i18n="booking.paymentChoiceLabel">¿Cómo quieres pagar?</legend>
+          <label class="payment-choice__option">
+            <input type="radio" name="paymentType" value="deposit" checked>
+            <span data-i18n="booking.payDepositOption">Solo el depósito</span>
+            <b id="payment-choice-deposit-amount"></b>
+          </label>
+          <label class="payment-choice__option">
+            <input type="radio" name="paymentType" value="full">
+            <span data-i18n="booking.payFullOption">El total del servicio</span>
+            <b id="payment-choice-full-amount"></b>
+          </label>
+        </fieldset>
+
         <div class="booking-actions">
           <button type="button" class="btn btn--secondary" id="btn-back-2" data-i18n="booking.back">← Atrás</button>
           <button type="submit" class="btn btn--gold" id="btn-pay" data-i18n="booking.payBtn">Pagar depósito y confirmar →</button>

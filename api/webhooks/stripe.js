@@ -72,6 +72,19 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // Logs what was actually collected online (deposit or full price,
+  // whichever the client chose) so Maribel's running total in the admin
+  // panel reflects it alongside any cash/card she records manually.
+  if (session.amount_total) {
+    const { error: paymentLogError } = await supabase.from('appointment_payments').insert({
+      appointment_id: appointment.id,
+      amount_cents: session.amount_total,
+      method: 'stripe',
+      note: appointment.payment_type === 'full' ? 'Pago completo en línea' : 'Depósito en línea',
+    });
+    if (paymentLogError) console.error('Failed to log Stripe payment for appointment', appointment.id, paymentLogError);
+  }
+
   try {
     await Promise.all([
       sendClientConfirmation({

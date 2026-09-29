@@ -21,7 +21,8 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const { serviceId, addonIds, startAt, clientName, clientPhone, clientEmail, notes } = req.body || {};
+  const { serviceId, addonIds, startAt, clientName, clientPhone, clientEmail, notes, paymentType } = req.body || {};
+  const chosenPaymentType = paymentType === 'full' ? 'full' : 'deposit';
 
   if (
     !serviceId ||
@@ -58,6 +59,9 @@ module.exports = async function handler(req, res) {
   const totalPrice = services.reduce((sum, s) => sum + s.price_cents, 0);
   // Flat deposit per appointment (Maribel's policy), not per service line.
   const totalDeposit = DEPOSIT_CENTS;
+  // What actually gets charged at booking — the flat deposit, or the full
+  // service price if the client chose to pay it all upfront.
+  const chargeCents = chosenPaymentType === 'full' ? totalPrice : totalDeposit;
   const serviceLabel = services.map((s) => s.name).join(' + ');
 
   const end = new Date(start.getTime() + totalDuration * 60000);
@@ -129,6 +133,7 @@ module.exports = async function handler(req, res) {
       deposit_cents: totalDeposit,
       price_cents: totalPrice,
       service_label: serviceLabel,
+      payment_type: chosenPaymentType,
     })
     .select()
     .single();
@@ -154,11 +159,12 @@ module.exports = async function handler(req, res) {
   const connectedAccountId = settings?.stripe_account_id || null;
   const stripeRequestOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
 
-  // The platform's commission only applies when the deposit actually lands
+  // The platform's commission only applies when the charge actually lands
   // in Maribel's connected account (a direct charge) — with no connected
-  // account, the deposit already goes straight to the platform, so there's
-  // nothing to take a cut of.
-  const applicationFeeCents = connectedAccountId ? computeApplicationFeeCents(totalDeposit) : 0;
+  // account, the money already goes straight to the platform, so there's
+  // nothing to take a cut of. It's computed on whatever is actually
+  // charged now (deposit or full price), not always the flat deposit.
+  const applicationFeeCents = connectedAccountId ? computeApplicationFeeCents(chargeCents) : 0;
 
   try {
     const session = await getStripe().checkout.sessions.create(
@@ -170,9 +176,9 @@ module.exports = async function handler(req, res) {
           {
             price_data: {
               currency: 'usd',
-              unit_amount: totalDeposit,
+              unit_amount: chargeCents,
               product_data: {
-                name: `Depósito — ${serviceLabel}`,
+                name: `${chosenPaymentType === 'full' ? 'Pago completo' : 'Depósito'} — ${serviceLabel}`,
                 description: `Rosas Nails Art · ${start.toLocaleString('es-US', { timeZone: TIMEZONE })}`,
               },
             },

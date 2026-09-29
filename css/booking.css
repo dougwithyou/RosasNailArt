@@ -274,6 +274,38 @@
   border-color: var(--color-gold);
 }
 
+/* ── Step 3: payment choice ── */
+.payment-choice {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.payment-choice legend {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-ink-mid);
+  margin-bottom: var(--space-2);
+  padding: 0;
+}
+.payment-choice__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+.payment-choice__option:has(input:checked) {
+  border-color: var(--color-gold);
+  background: var(--color-rose-lt);
+}
+.payment-choice__option input { accent-color: var(--color-gold); }
+.payment-choice__option b { margin-left: auto; color: var(--color-gold); }
+
 /* ── Success ── */
 .booking-success {
   text-align: center;
