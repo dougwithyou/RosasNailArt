@@ -2,6 +2,7 @@ const Stripe = require('stripe');
 const { getSupabase } = require('../lib/supabase');
 const { TIMEZONE, BUFFER_MINUTES, MIN_NOTICE_MINUTES, BOOKING_HORIZON_DAYS, PENDING_HOLD_MINUTES, DEPOSIT_CENTS } = require('../lib/business-hours');
 const { zonedTimeToUtc } = require('../lib/timezone');
+const { computeApplicationFeeCents } = require('../lib/platform-fee');
 
 function parseTimeParts(timeStr) {
   const [hour, minute] = timeStr.split(':').map((n) => parseInt(n, 10));
@@ -153,6 +154,12 @@ module.exports = async function handler(req, res) {
   const connectedAccountId = settings?.stripe_account_id || null;
   const stripeRequestOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
 
+  // The platform's commission only applies when the deposit actually lands
+  // in Maribel's connected account (a direct charge) — with no connected
+  // account, the deposit already goes straight to the platform, so there's
+  // nothing to take a cut of.
+  const applicationFeeCents = connectedAccountId ? computeApplicationFeeCents(totalDeposit) : 0;
+
   try {
     const session = await getStripe().checkout.sessions.create(
       {
@@ -172,6 +179,7 @@ module.exports = async function handler(req, res) {
             quantity: 1,
           },
         ],
+        ...(applicationFeeCents > 0 ? { payment_intent_data: { application_fee_amount: applicationFeeCents } } : {}),
         metadata: { appointment_id: appointment.id },
         success_url: `${origin}/booking.html?success=1&appointment=${appointment.id}`,
         cancel_url: `${origin}/booking.html?cancelled=1`,
