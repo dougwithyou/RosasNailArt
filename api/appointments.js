@@ -22,7 +22,6 @@ module.exports = async function handler(req, res) {
   }
 
   const { serviceId, addonIds, startAt, clientName, clientPhone, clientEmail, notes, paymentType } = req.body || {};
-  const chosenPaymentType = paymentType === 'full' ? 'full' : 'deposit';
 
   if (
     !serviceId ||
@@ -45,22 +44,29 @@ module.exports = async function handler(req, res) {
   const supabase = getSupabase();
 
   const allIds = [serviceId, ...(Array.isArray(addonIds) ? addonIds : [])];
-  const { data: services, error: servicesError } = await supabase
-    .from('services')
-    .select('id, name, duration_minutes, price_cents, active')
-    .in('id', allIds);
+  const [{ data: services, error: servicesError }, { data: settings }] = await Promise.all([
+    supabase.from('services').select('id, name, duration_minutes, price_cents, active').in('id', allIds),
+    supabase.from('business_settings').select('stripe_account_id, payment_policy').eq('id', true).maybeSingle(),
+  ]);
 
   if (servicesError || !services || services.length !== allIds.length || services.some((s) => !s.active)) {
     res.status(400).json({ error: 'Servicio no válido' });
     return;
   }
 
+  // Maribel can force "solo depósito" or "pago total" from her panel — in
+  // that case the client's own choice (if any) is overridden here, so the
+  // policy is enforced server-side rather than trusted from the request.
+  const paymentPolicy = settings?.payment_policy || 'client_choice';
+  const chosenPaymentType =
+    paymentPolicy === 'deposit_only' ? 'deposit' : paymentPolicy === 'full_only' ? 'full' : paymentType === 'full' ? 'full' : 'deposit';
+
   const totalDuration = services.reduce((sum, s) => sum + s.duration_minutes, 0);
   const totalPrice = services.reduce((sum, s) => sum + s.price_cents, 0);
   // Flat deposit per appointment (Maribel's policy), not per service line.
   const totalDeposit = DEPOSIT_CENTS;
   // What actually gets charged at booking — the flat deposit, or the full
-  // service price if the client chose to pay it all upfront.
+  // service price if the client chose (or was required) to pay it upfront.
   const chargeCents = chosenPaymentType === 'full' ? totalPrice : totalDeposit;
   const serviceLabel = services.map((s) => s.name).join(' + ');
 
@@ -155,7 +161,6 @@ module.exports = async function handler(req, res) {
   // Once Maribel has connected her own Stripe account, deposits are charged
   // directly on it (a Connect "direct charge") so the money lands in her
   // balance instead of the platform's.
-  const { data: settings } = await supabase.from('business_settings').select('stripe_account_id').eq('id', true).maybeSingle();
   const connectedAccountId = settings?.stripe_account_id || null;
   const stripeRequestOptions = connectedAccountId ? { stripeAccount: connectedAccountId } : undefined;
 

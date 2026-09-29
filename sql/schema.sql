@@ -85,7 +85,11 @@ create index open_slots_date_idx on open_slots (date);
 create table business_settings (
   id boolean primary key default true check (id),
   stripe_account_id text,
-  stripe_connected_at timestamptz
+  stripe_connected_at timestamptz,
+  -- Controls what booking.html lets a client pay at booking time: always
+  -- just the deposit, always the full service price, or her choice.
+  payment_policy text not null default 'client_choice'
+    check (payment_policy in ('deposit_only', 'full_only', 'client_choice'))
 );
 insert into business_settings (id) values (true);
 

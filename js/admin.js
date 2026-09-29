@@ -207,6 +207,38 @@ async function loadStats() {
   }
 
   loadStripeStatus();
+  loadPaymentPolicy();
+}
+
+// ── Payment policy ─────────────────────────────────
+async function loadPaymentPolicy() {
+  try {
+    const { paymentPolicy } = await apiFetch('/api/admin/dashboard?view=payment-policy');
+    const input = $(`input[name=paymentPolicy][value="${paymentPolicy}"]`);
+    if (input) input.checked = true;
+  } catch (err) {
+    // Leave whatever was already selected — not critical enough to block the rest of Inicio.
+  }
+}
+
+function initPaymentPolicyForm() {
+  $('#payment-policy-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true;
+    try {
+      await apiFetch('/api/admin/dashboard?view=payment-policy', {
+        method: 'POST',
+        body: JSON.stringify({ paymentPolicy: form.paymentPolicy.value }),
+      });
+      alert('Política de pago guardada.');
+    } catch (err) {
+      alert('No se pudo guardar la política de pago.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 // ── Stripe Connect ─────────────────────────────────
@@ -1337,6 +1369,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSidebar();
   initAgendaNav();
   initChangePasswordModal();
+  initPaymentPolicyForm();
   initAddAppointmentModal();
   initOpenSlotForm();
   initServiceForm();
