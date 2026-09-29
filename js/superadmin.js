@@ -98,6 +98,58 @@ async function initAuth() {
   $('#btn-logout').addEventListener('click', () => sb.auth.signOut());
 }
 
+// ── Change password ───────────────────────────────
+function openChangePasswordModal() {
+  const overlay = $('#change-password-overlay');
+  $('#change-password-form').reset();
+  $('#change-password-error').hidden = true;
+  overlay.hidden = false;
+}
+
+function closeChangePasswordModal() {
+  $('#change-password-overlay').hidden = true;
+}
+
+function initChangePasswordModal() {
+  $('#btn-change-password').addEventListener('click', openChangePasswordModal);
+  $('#change-password-close').addEventListener('click', closeChangePasswordModal);
+  $('#change-password-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'change-password-overlay') closeChangePasswordModal();
+  });
+
+  $('#change-password-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = $('#change-password-error');
+    errorEl.hidden = true;
+    const form = e.target;
+
+    if (form.password.value !== form.confirmPassword.value) {
+      errorEl.textContent = 'Las contraseñas no coinciden.';
+      errorEl.hidden = false;
+      return;
+    }
+    if (form.password.value.length < 8) {
+      errorEl.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+      errorEl.hidden = false;
+      return;
+    }
+
+    const submitBtn = form.querySelector('button[type=submit]');
+    submitBtn.disabled = true;
+    try {
+      const { error } = await sb.auth.updateUser({ password: form.password.value });
+      if (error) throw error;
+      closeChangePasswordModal();
+      alert('Contraseña actualizada.');
+    } catch (err) {
+      errorEl.textContent = err.message || 'No se pudo cambiar la contraseña.';
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+}
+
 // ── Content loading ────────────────────────────────
 async function loadContent() {
   try {
@@ -413,6 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initStaticImageUpload();
   initAddButtons();
   initSaveForm();
+  initChangePasswordModal();
 });
 
 })();
