@@ -8,6 +8,25 @@ function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+// The itemized payment history for one appointment (online charge + any
+// manual cash/card entries Maribel logged), so she can see exactly what
+// makes up the running total against the service price.
+async function handlePaymentsFor(req, res, supabase) {
+  const { paymentsFor } = req.query;
+  const { data, error } = await supabase
+    .from('appointment_payments')
+    .select('id, amount_cents, method, note, created_at')
+    .eq('appointment_id', paymentsFor)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    res.status(500).json({ error: 'No se pudieron cargar los pagos' });
+    return;
+  }
+
+  res.status(200).json({ payments: data });
+}
+
 async function handleList(req, res, supabase) {
   const { from, to } = req.query;
   if (!from || !to) {
@@ -17,7 +36,7 @@ async function handleList(req, res, supabase) {
 
   const { data, error } = await supabase
     .from('appointments')
-    .select('id, service_label, client_name, client_phone, client_email, notes, start_at, end_at, status, price_cents, deposit_cents')
+    .select('id, service_label, client_name, client_phone, client_email, notes, start_at, end_at, status, price_cents, deposit_cents, payment_type')
     .in('status', ['confirmed', 'pending_payment', 'cancelled'])
     .gte('start_at', from)
     .lte('start_at', to)
@@ -28,7 +47,19 @@ async function handleList(req, res, supabase) {
     return;
   }
 
-  res.status(200).json({ appointments: data });
+  const appointments = data || [];
+  const ids = appointments.map((a) => a.id);
+  const amountPaidById = new Map();
+  if (ids.length) {
+    const { data: payments } = await supabase.from('appointment_payments').select('appointment_id, amount_cents').in('appointment_id', ids);
+    (payments || []).forEach((p) => {
+      amountPaidById.set(p.appointment_id, (amountPaidById.get(p.appointment_id) || 0) + p.amount_cents);
+    });
+  }
+
+  res.status(200).json({
+    appointments: appointments.map((a) => ({ ...a, amountPaidCents: amountPaidById.get(a.id) || 0 })),
+  });
 }
 
 // Lets Maribel block a slot for a client she booked directly (e.g. via
@@ -193,18 +224,58 @@ async function handleDelete(req, res, supabase) {
   res.status(200).json({ deleted: true });
 }
 
+// Lets Maribel log a payment she collected herself outside Stripe (cash or
+// card in person — e.g. the remaining balance after an online deposit, or
+// the whole thing for a walk-in), so her running total for the appointment
+// reflects reality.
+async function handleAddPayment(req, res, supabase) {
+  const { id, amountCents, method, note } = req.body || {};
+  const allowedMethods = ['cash', 'card', 'other'];
+  if (!id || !Number.isFinite(amountCents) || amountCents <= 0 || !allowedMethods.includes(method)) {
+    res.status(400).json({ error: 'Datos de pago inválidos' });
+    return;
+  }
+
+  const { data: appointment } = await supabase.from('appointments').select('id').eq('id', id).single();
+  if (!appointment) {
+    res.status(404).json({ error: 'Cita no encontrada' });
+    return;
+  }
+
+  const { error: insertError } = await supabase.from('appointment_payments').insert({
+    appointment_id: id,
+    amount_cents: Math.round(amountCents),
+    method,
+    note: note?.trim() || null,
+  });
+
+  if (insertError) {
+    res.status(500).json({ error: 'No se pudo registrar el pago' });
+    return;
+  }
+
+  const { data: payments } = await supabase.from('appointment_payments').select('amount_cents').eq('appointment_id', id);
+  const amountPaidCents = (payments || []).reduce((sum, p) => sum + p.amount_cents, 0);
+
+  res.status(200).json({ recorded: true, amountPaidCents });
+}
+
 module.exports = async function handler(req, res) {
   const user = await requireRole(req, res, ['owner', 'superadmin']);
   if (!user) return;
 
   const supabase = getSupabase();
 
-  if (req.method === 'GET') return handleList(req, res, supabase);
+  if (req.method === 'GET') {
+    if (req.query.paymentsFor) return handlePaymentsFor(req, res, supabase);
+    return handleList(req, res, supabase);
+  }
   if (req.method === 'POST') return handleManualCreate(req, res, supabase);
   if (req.method === 'DELETE') return handleDelete(req, res, supabase);
   if (req.method === 'PATCH') {
     const { action } = req.body || {};
     if (action === 'cancel') return handleCancel(req, res, supabase);
+    if (action === 'add-payment') return handleAddPayment(req, res, supabase);
     res.status(400).json({ error: 'Acción inválida' });
     return;
   }

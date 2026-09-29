@@ -357,6 +357,34 @@ async function deleteAppointment(appointment, onDone) {
   }
 }
 
+// Lets Maribel log a payment she collected herself outside Stripe (cash or
+// card in person) against an appointment — the remaining balance after an
+// online deposit, or the whole service price for a walk-in.
+async function recordPayment(appointment, onDone) {
+  const amountStr = prompt(`¿Cuánto pagó ${appointment.client_name} en persona? (en dólares, ej. 80)`);
+  if (!amountStr) return;
+  const amount = parseFloat(amountStr.replace(',', '.'));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert('Monto inválido.');
+    return;
+  }
+  const methodInput = (prompt('¿Cómo pagó? Escribe: efectivo, tarjeta, u otro', 'efectivo') || 'efectivo').trim().toLowerCase();
+  const methodMap = { efectivo: 'cash', cash: 'cash', tarjeta: 'card', card: 'card' };
+  const method = methodMap[methodInput] || 'other';
+  const note = prompt('Nota (opcional):') || '';
+
+  try {
+    const result = await apiFetch('/api/admin/appointments', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: appointment.id, action: 'add-payment', amountCents: Math.round(amount * 100), method, note }),
+    });
+    alert(`Pago registrado. Total pagado hasta ahora: ${money(result.amountPaidCents)}.`);
+    if (onDone) onDone();
+  } catch (err) {
+    alert(err.message || 'No se pudo registrar el pago.');
+  }
+}
+
 // ── Agenda ────────────────────────────────────────
 function appointmentActionsHtml(a) {
   return `
@@ -368,6 +396,7 @@ function appointmentActionsHtml(a) {
       <button type="button" data-notify="reschedule">Reagendar</button>
       <button type="button" data-notify="late">Voy tarde</button>
       <button type="button" data-notify="custom">Mensaje</button>
+      <button type="button" data-record-payment>Registrar pago</button>
       <button type="button" data-cancel class="danger-link">Cancelar</button>
       `
       }
@@ -382,6 +411,7 @@ function wireAppointmentActions(container, a, onCancelled) {
   });
   $('[data-cancel]', container)?.addEventListener('click', () => cancelAppointment(a, onCancelled));
   $('[data-delete]', container)?.addEventListener('click', () => deleteAppointment(a, onCancelled));
+  $('[data-record-payment]', container)?.addEventListener('click', () => recordPayment(a, onCancelled));
 }
 
 function renderDayCard(day, dayAppointments, dayOpenSlots, onCancelled) {
@@ -415,7 +445,7 @@ function renderDayCard(day, dayAppointments, dayOpenSlots, onCancelled) {
         <div class="agenda-item__time">${time}</div>
         <div class="agenda-item__meta">
           <b>${a.client_name}</b> — ${a.service_label}<br>
-          ${a.client_phone} · ${money(a.price_cents)} (depósito ${money(a.deposit_cents)})
+          ${a.client_phone} · ${money(a.price_cents)} · pagado ${money(a.amountPaidCents || 0)}
         </div>
         <div class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</div>
         ${appointmentActionsHtml(a)}
@@ -574,7 +604,7 @@ function openWeekPopover(a, anchorEl) {
     <p class="week-popover__meta">
       ${a.service_label}<br>
       ${time} · ${a.client_phone}<br>
-      ${money(a.price_cents)} (depósito ${money(a.deposit_cents)}) ·
+      ${money(a.price_cents)} · pagado ${money(a.amountPaidCents || 0)} ·
       <span class="agenda-item__status ${a.status}">${STATUS_LABELS[a.status] || a.status}</span>
     </p>
     <div class="week-popover__actions">
@@ -585,6 +615,7 @@ function openWeekPopover(a, anchorEl) {
         <button type="button" data-notify="reschedule">Reagendar</button>
         <button type="button" data-notify="late">Voy tarde</button>
         <button type="button" data-notify="custom">Mensaje</button>
+        <button type="button" data-record-payment>Registrar pago</button>
         <button type="button" data-cancel class="danger-link">Cancelar cita</button>
       `
       }
@@ -604,6 +635,10 @@ function openWeekPopover(a, anchorEl) {
   $('[data-delete]', body)?.addEventListener('click', () => {
     pop.hidden = true;
     deleteAppointment(a, () => loadAgenda());
+  });
+  $('[data-record-payment]', body)?.addEventListener('click', () => {
+    pop.hidden = true;
+    recordPayment(a, () => loadAgenda());
   });
 
   const rect = anchorEl.getBoundingClientRect();

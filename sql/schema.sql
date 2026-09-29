@@ -40,6 +40,10 @@ create table appointments (
   deposit_cents integer not null,
   price_cents integer not null default 0,
   service_label text not null default '',
+  -- What the client chose to pay online at booking time — the flat deposit,
+  -- or the full service price upfront. Purely informational; the actual
+  -- amount collected lives in appointment_payments.
+  payment_type text not null default 'deposit' check (payment_type in ('deposit', 'full')),
   created_at timestamptz not null default now(),
   constraint end_after_start check (end_at > start_at)
 );
@@ -47,6 +51,21 @@ create table appointments (
 create index appointments_start_at_idx on appointments (start_at);
 create index appointments_status_idx on appointments (status);
 create index appointments_stripe_session_idx on appointments (stripe_session_id);
+
+-- Itemized log of everything actually collected for an appointment: the
+-- online Stripe charge (inserted by the webhook) plus any manual entries
+-- Maribel records for cash/card paid in person, so she can see the running
+-- total against the service price.
+create table appointment_payments (
+  id uuid primary key default gen_random_uuid(),
+  appointment_id uuid not null references appointments(id) on delete cascade,
+  amount_cents integer not null check (amount_cents > 0),
+  method text not null default 'cash' check (method in ('stripe', 'cash', 'card', 'other')),
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create index appointment_payments_appointment_idx on appointment_payments (appointment_id);
 
 -- open_slots: explicit windows Maribel opens for a future date. availability.js
 -- reads these instead of a fixed schedule — a date with no rows is closed.

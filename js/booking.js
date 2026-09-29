@@ -303,6 +303,16 @@ function renderSummary() {
     <div><b>${t('booking.js.summaryPrice')}</b> ${money(price)}</div>
     <div><b>${t('booking.js.summaryDeposit')}</b> ${money(deposit)}</div>
   `;
+  $('#payment-choice-deposit-amount').textContent = money(deposit);
+  $('#payment-choice-full-amount').textContent = money(price);
+  updatePayButtonLabel();
+}
+
+function updatePayButtonLabel() {
+  const form = $('#booking-form');
+  const btn = $('#btn-pay');
+  const isFull = form.paymentType.value === 'full';
+  btn.textContent = t(isFull ? 'booking.payBtnFull' : 'booking.payBtn');
 }
 
 async function submitBooking(e) {
@@ -321,6 +331,7 @@ async function submitBooking(e) {
     clientPhone: form.clientPhone.value,
     clientEmail: form.clientEmail.value,
     notes: form.notes.value,
+    paymentType: form.paymentType.value,
   };
 
   try {
@@ -394,6 +405,9 @@ function initBookingWizard() {
   });
 
   $('#booking-form').addEventListener('submit', submitBooking);
+  $$('input[name=paymentType]', $('#booking-form')).forEach((input) => {
+    input.addEventListener('change', updatePayButtonLabel);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initBookingWizard);
