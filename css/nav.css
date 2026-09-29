@@ -61,6 +61,11 @@
 .nav-logo:hover .nav-logo__mark {
   transform: scale(1.08) rotate(-4deg);
 }
+.nav-logo__mark-img {
+  width: 24px;
+  height: auto;
+  display: block;
+}
 
 .nav-logo__img {
   height: 44px;
