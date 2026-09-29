@@ -311,50 +311,6 @@
   opacity: 0;
 }
 
-/* Floating decoration card */
-.hero-float-card {
-  position: absolute;
-  right: -24px;
-  top: 30%;
-  background: #fff;
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-border);
-  min-width: 160px;
-  animation: float-card 4s ease-in-out infinite;
-}
-
-@keyframes float-card {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
-}
-
-.hero-float-card__rating {
-  font-size: 1.1rem;
-  font-weight: var(--weight-black);
-  font-family: var(--font-alt);
-  color: var(--color-ink);
-  margin-bottom: var(--space-1);
-}
-
-.hero-float-card__stars {
-  display: flex;
-  gap: 2px;
-  margin-bottom: var(--space-2);
-}
-
-.hero-float-card__stars span {
-  font-size: .75rem;
-  color: var(--color-gold);
-}
-
-.hero-float-card__label {
-  font-size: .7rem;
-  color: var(--color-ink-soft);
-  font-weight: var(--weight-medium);
-}
-
 /* Hero copy */
 .hero-copy {
   display: flex;
@@ -1078,7 +1034,6 @@
 @media (max-width: 900px) {
   .hero-grid { grid-template-columns: 1fr; gap: var(--space-10); }
   .hero-visual { order: -1; }
-  .hero-float-card { display: none; }
   .hero-photo-slot,
   .hero-photo--static { aspect-ratio: 4 / 3; }
   .hero-photo__nails { padding: 20px 20px 60px; }
