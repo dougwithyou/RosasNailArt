@@ -83,6 +83,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
           <span>Notificaciones</span>
         </button>
+        <!-- Only shown to superadmin accounts (js/admin.js), so it's clear
+             this is Maribel's operational panel, not the content/CMS one. -->
+        <a href="superadmin.html" class="sidebar__link" id="link-to-cms" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h9l3 3h4v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z"/></svg>
+          <span>Ir al panel de contenido (CMS)</span>
+        </a>
       </nav>
 
       <div class="sidebar__footer">
