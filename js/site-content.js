@@ -87,8 +87,14 @@
       const grid = document.getElementById('testimonials-grid');
       if (grid) {
         grid.innerHTML = content.testimonials
-          .map(
-            (t) => `
+          .map((t) =>
+            t.imageUrl
+              ? `
+          <div class="testimonial-card testimonial-card--screenshot">
+            <img class="testimonial-screenshot" src="${escapeHtml(t.imageUrl)}" alt="${escapeHtml(t.name || 'Opinión de clienta')}" loading="lazy">
+          </div>
+        `
+              : `
           <div class="testimonial-card">
             <div class="testimonial-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
             <p class="testimonial-quote">${escapeHtml(t.quote || '')}</p>

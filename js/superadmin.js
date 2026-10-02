@@ -233,8 +233,7 @@ function initCropModal() {
   $('#crop-confirm').addEventListener('click', () => {
     if (!cropper) return;
     const canvas = cropper.getCroppedCanvas({
-      width: cropOutputSize.w,
-      height: cropOutputSize.h,
+      ...(cropOutputSize ? { width: cropOutputSize.w, height: cropOutputSize.h } : {}),
       imageSmoothingQuality: 'high',
     });
     canvas.toBlob(
@@ -387,16 +386,56 @@ function renderTestimonials() {
       (t, i) => `
     <div class="repeat-item" data-index="${i}">
       <button type="button" class="repeat-item__remove" data-remove>Quitar</button>
+      <p class="field-hint">Opción A: escribe el testimonio. Opción B: sube una captura de pantalla (ej. de WhatsApp) en vez del texto.</p>
       <label>Testimonio<textarea rows="2" data-list-field="quote">${escapeHtml(t.quote)}</textarea></label>
       <div class="admin-form admin-form--inline">
         <label>Nombre<input type="text" value="${escapeHtml(t.name)}" data-list-field="name"></label>
         <label>Servicio<input type="text" value="${escapeHtml(t.service)}" data-list-field="service"></label>
+      </div>
+      <div class="image-field">
+        <div class="image-field__row">
+          <img class="image-field__preview" src="${escapeHtml(t.imageUrl || '')}" ${t.imageUrl ? '' : 'hidden'} data-testimonial-preview>
+          <button type="button" class="btn btn--secondary" data-testimonial-upload>Subir captura</button>
+          ${t.imageUrl ? '<button type="button" class="btn btn--secondary" data-testimonial-remove-image>Quitar captura</button>' : ''}
+          <input type="file" accept="image/*" hidden data-testimonial-file>
+        </div>
       </div>
     </div>
   `
     )
     .join('');
   wireRepeatList(list, 'testimonials', renderTestimonials);
+
+  $$('[data-testimonial-upload]', list).forEach((btn) => {
+    const item = btn.closest('.repeat-item');
+    const input = $('[data-testimonial-file]', item);
+    btn.addEventListener('click', () => input.click());
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const blob = await openCropModal(file, NaN, null);
+        if (!blob) return;
+        const url = await uploadImage(blob);
+        const idx = Number(item.dataset.index);
+        content.testimonials[idx] = { ...content.testimonials[idx], imageUrl: url };
+        renderTestimonials();
+      } catch (err) {
+        alert(err.message || 'No se pudo subir la imagen.');
+      } finally {
+        input.value = '';
+      }
+    });
+  });
+
+  $$('[data-testimonial-remove-image]', list).forEach((btn) => {
+    const item = btn.closest('.repeat-item');
+    btn.addEventListener('click', () => {
+      const idx = Number(item.dataset.index);
+      content.testimonials[idx] = { ...content.testimonials[idx], imageUrl: '' };
+      renderTestimonials();
+    });
+  });
 }
 
 function initAddButtons() {
@@ -413,7 +452,7 @@ function initAddButtons() {
   });
   $('#btn-add-testimonial').addEventListener('click', () => {
     content.testimonials = content.testimonials || [];
-    content.testimonials.push({ quote: '', name: '', service: '' });
+    content.testimonials.push({ quote: '', name: '', service: '', imageUrl: '' });
     renderTestimonials();
   });
 }

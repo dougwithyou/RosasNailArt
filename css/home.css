@@ -899,6 +899,18 @@
   color: var(--color-ink-soft);
 }
 
+.testimonial-card--screenshot {
+  padding: 0;
+  overflow: hidden;
+}
+
+.testimonial-screenshot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+
 /* ── CURSOS Y ASESORÍA ── */
 .courses-section {
   padding: 0 0 var(--space-24);
