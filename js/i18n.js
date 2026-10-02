@@ -36,7 +36,7 @@
       'hero.subtitle': 'Manicure, pedicure y diseños personalizados en un ambiente pensado para que te sientas consentida de principio a fin.',
       'hero.ctaBooking': 'Reservar mi cita →',
       'hero.ctaServices': 'Ver servicios',
-      'hero.chipHtml': '<b>100%</b> instrumentos esterilizados en cada servicio',
+      'hero.chipHtml': 'Uñas que hablan de tu estilo',
 
       'services.eyebrow': 'Lo que ofrecemos',
       'services.title': 'Nuestros servicios',
@@ -171,7 +171,7 @@
       'hero.subtitle': 'Manicure, pedicure, and custom nail art in a space designed to make you feel pampered from start to finish.',
       'hero.ctaBooking': 'Book my appointment →',
       'hero.ctaServices': 'View services',
-      'hero.chipHtml': '<b>100%</b> sterilized tools for every service',
+      'hero.chipHtml': 'Nails that speak your style',
 
       'services.eyebrow': 'What we offer',
       'services.title': 'Our services',
