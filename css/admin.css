@@ -819,3 +819,66 @@
   .topbar { padding: var(--space-5) var(--space-5); }
   .admin-content { padding: var(--space-5); }
 }
+
+/* ── Responsive: Agenda on narrow screens (phones) ── */
+@media (max-width: 600px) {
+  .admin-content { padding: var(--space-4); }
+
+  .agenda-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .agenda-toolbar #btn-add-appointment {
+    position: static;
+    width: 100%;
+  }
+  .agenda-view-toggle { width: 100%; }
+  .agenda-view-btn { flex: 1; }
+
+  .admin-panel__head { margin-bottom: var(--space-4); }
+  .admin-panel__head h3 { min-width: 0; font-size: var(--text-base); }
+
+  /* Card-style month calendar, closer to a native date picker */
+  #agenda-month-grid {
+    gap: 3px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-6);
+  }
+  #agenda-month-grid .cal-dow {
+    font-size: 10px;
+    letter-spacing: .02em;
+    padding-bottom: var(--space-1);
+  }
+  #agenda-month-grid .cal-day {
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-md);
+    gap: 2px;
+    font-size: var(--text-sm);
+    border-color: transparent;
+    background: transparent;
+  }
+  #agenda-month-grid .cal-day.has-open,
+  #agenda-month-grid .cal-day.has-appts { border-color: var(--color-border); }
+  .cal-day__badge {
+    font-size: 8px;
+    padding: 1px 5px;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cal-day__badge--open {
+    font-size: 0;
+    color: transparent;
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border-radius: 50%;
+  }
+}
