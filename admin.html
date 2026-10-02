@@ -163,7 +163,7 @@
         <section class="admin-panel admin-panel--agenda" data-tab-panel="agenda" hidden>
           <div class="agenda-toolbar">
             <div class="agenda-view-toggle">
-              <button type="button" class="agenda-view-btn active" data-view="week">Semana</button>
+              <button type="button" class="agenda-view-btn active" data-view="upcoming">Próximas</button>
               <button type="button" class="agenda-view-btn" data-view="month">Mes</button>
             </div>
             <button type="button" class="btn btn--primary btn--sm" id="btn-add-appointment">+ Agregar cita</button>
@@ -178,8 +178,8 @@
           <!-- Month view: calendar grid with open/booked indicators -->
           <div class="calendar-grid" id="agenda-month-grid" hidden></div>
 
-          <!-- Week view: hour-by-hour grid -->
-          <div class="week-grid" id="agenda-week-grid"></div>
+          <!-- Upcoming view: appointments grouped by date, nearest first -->
+          <div id="agenda-upcoming"></div>
 
           <div id="agenda-list" class="agenda-list" hidden></div>
         </section>
@@ -306,7 +306,7 @@
       </div>
     </div>
 
-    <!-- Floating popover for week-grid appointment blocks -->
+    <!-- Floating popover for agenda appointment items -->
     <div class="week-popover" id="week-popover" hidden>
       <button type="button" class="week-popover__close" id="week-popover-close" aria-label="Cerrar">×</button>
       <div class="week-popover__body" id="week-popover-body"></div>

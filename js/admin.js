@@ -23,8 +23,8 @@ const TIMEZONE = 'America/New_York';
 const DOW_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const DOW_LABELS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const STATUS_LABELS = { confirmed: 'Confirmada', pending_payment: 'Pendiente de pago', cancelled: 'Cancelada' };
-const MIN_HOUR_HEIGHT = 30; // px per hour floor in the weekly grid, below which it scrolls instead of shrinking further
 const MIN_MONTH_ROW_HEIGHT = 64; // px floor per week row in the month grid
+const UPCOMING_ITEM_COLORS = ['a', 'b', 'c', 'd'];
 
 const MONTH_LABELS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -41,8 +41,7 @@ const PANEL_TITLES = {
 };
 
 const state = {
-  weekStart: startOfWeek(new Date()),
-  viewMode: 'week',
+  viewMode: 'upcoming',
   monthCursor: startOfMonth(new Date()),
   selectedDay: null,
   currentPanel: 'inicio',
@@ -50,38 +49,16 @@ const state = {
 
 let clientsCache = [];
 let servicesCache = [];
-let lastWeekGridData = null; // { weekStart, appointments, openSlots } — kept for resize re-render
 
 function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-function startOfWeek(d) {
-  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = date.getDay();
-  date.setDate(date.getDate() - day);
-  return date;
-}
 function dateKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 function money(cents) {
   return `$${(cents / 100).toFixed(2)}`;
-}
-function timeToMinutes(str) {
-  const [h, m] = str.split(':').map(Number);
-  return h * 60 + m;
-}
-// Wall-clock minutes-since-midnight for a UTC instant, as seen in TIMEZONE —
-// needed because appointments are timestamptz but open_slots are stored as
-// plain local wall-clock times, so both must line up on the same clock.
-function easternMinutesOfDay(date) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(date);
-  const hour = Number(parts.find((p) => p.type === 'hour').value) % 24;
-  const minute = Number(parts.find((p) => p.type === 'minute').value);
-  return hour * 60 + minute;
 }
 
 async function authHeader() {
@@ -498,25 +475,7 @@ async function fetchRange(from, to) {
 
 async function loadAgenda() {
   if (state.viewMode === 'month') return loadMonthView();
-  return loadWeekView();
-}
-
-function computeGridHours(openSlots) {
-  if (!openSlots.length) return { startHour: 9, endHour: 19 };
-  let minStart = 24 * 60;
-  let maxEnd = 0;
-  openSlots.forEach((s) => {
-    minStart = Math.min(minStart, timeToMinutes(s.start_time));
-    maxEnd = Math.max(maxEnd, timeToMinutes(s.end_time));
-  });
-  return { startHour: Math.floor(minStart / 60), endHour: Math.ceil(maxEnd / 60) };
-}
-
-function formatHourLabel(hour) {
-  const h = hour % 24;
-  const period = h < 12 ? 'am' : 'pm';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}${period}`;
+  return loadUpcomingView();
 }
 
 // How much vertical room is left below `el`'s top, down to the viewport
@@ -527,102 +486,64 @@ function availableHeightBelow(el, bottomPadding) {
   return Math.max(window.innerHeight - rect.top - bottomPadding, 200);
 }
 
-function renderWeekGrid(weekStart, appointments, openSlots) {
-  const grid = $('#agenda-week-grid');
-  grid.innerHTML = '';
+// Groups appointments (already sorted chronologically) by calendar day and
+// renders them as colored bars, nearest date first — client name + time,
+// click opens the same popover used elsewhere in the agenda for actions.
+function renderUpcomingList(appointments) {
+  const container = $('#agenda-upcoming');
+  container.innerHTML = '';
 
-  const { startHour, endHour } = computeGridHours(openSlots);
-  const hourCount = endHour - startHour;
-  const gridStartMin = startHour * 60;
-
-  const headerHeight = 62; // approx height of .week-grid__header, kept in sync with CSS
-  const available = availableHeightBelow(grid, 24) - headerHeight;
-  const hourHeight = Math.max(Math.floor(available / hourCount), MIN_HOUR_HEIGHT);
-  const bodyHeight = hourCount * hourHeight;
-  grid.style.setProperty('--hour-h', `${hourHeight}px`);
-
-  const header = document.createElement('div');
-  header.className = 'week-grid__header';
-  const todayKey = dateKey(new Date());
-  let headerHtml = '<div class="week-grid__corner"></div>';
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + i);
-    const isToday = dateKey(d) === todayKey;
-    headerHtml += `<div class="week-grid__daylabel ${isToday ? 'is-today' : ''}"><span>${DOW_LABELS_SHORT[d.getDay()]}</span><b>${d.getDate()}</b></div>`;
+  if (!appointments.length) {
+    container.innerHTML = '<p class="agenda-empty">No hay citas próximas</p>';
+    return;
   }
-  header.innerHTML = headerHtml;
-  grid.appendChild(header);
 
-  const body = document.createElement('div');
-  body.className = 'week-grid__body';
+  const groups = [];
+  let lastKey = null;
+  appointments.forEach((a) => {
+    const key = a.start_at.slice(0, 10);
+    if (key !== lastKey) {
+      groups.push({ key, items: [] });
+      lastKey = key;
+    }
+    groups[groups.length - 1].items.push(a);
+  });
 
-  const times = document.createElement('div');
-  times.className = 'week-grid__times';
-  times.style.height = `${bodyHeight}px`;
-  for (let h = startHour; h < endHour; h++) {
-    const lbl = document.createElement('div');
-    lbl.className = 'week-grid__time';
-    lbl.style.height = `${hourHeight}px`;
-    lbl.textContent = formatHourLabel(h);
-    times.appendChild(lbl);
-  }
-  body.appendChild(times);
+  const list = document.createElement('div');
+  list.className = 'upcoming-list';
 
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(weekStart);
-    day.setDate(day.getDate() + i);
-    const key = dateKey(day);
+  groups.forEach((g) => {
+    const [y, m, d] = g.key.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
 
-    const col = document.createElement('div');
-    col.className = 'week-grid__day';
-    col.style.height = `${bodyHeight}px`;
+    const row = document.createElement('div');
+    row.className = 'upcoming-group';
+    row.innerHTML = `
+      <div class="upcoming-group__date">
+        <span class="upcoming-group__num">${d}</span>
+        <span class="upcoming-group__dow">${DOW_LABELS_SHORT[dateObj.getDay()]}</span>
+      </div>
+      <div class="upcoming-group__items"></div>
+    `;
+    const itemsWrap = $('.upcoming-group__items', row);
 
-    openSlots
-      .filter((s) => s.date === key)
-      .forEach((s) => {
-        const startMin = timeToMinutes(s.start_time);
-        const endMin = timeToMinutes(s.end_time);
-        const top = Math.max((startMin - gridStartMin) * (hourHeight / 60), 0);
-        const height = Math.max((endMin - startMin) * (hourHeight / 60), 4);
-        const el = document.createElement('div');
-        el.className = 'week-slot week-slot--open';
-        el.style.top = `${top}px`;
-        el.style.height = `${height}px`;
-        el.textContent = `${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}`;
-        col.appendChild(el);
-      });
-
-    // Cancelled appointments render first (as dimmed ghosts) so active
-    // bookings always paint on top if a slot gets reused.
-    const dayAppointments = appointments
-      .filter((a) => a.start_at.slice(0, 10) === key)
-      .sort((a, b) => (a.status === 'cancelled' ? -1 : 0) - (b.status === 'cancelled' ? -1 : 0));
-
-    dayAppointments.forEach((a) => {
-      const startMin = easternMinutesOfDay(new Date(a.start_at));
-      const endMin = easternMinutesOfDay(new Date(a.end_at));
-      const top = Math.max((startMin - gridStartMin) * (hourHeight / 60), 0);
-      const height = Math.max((endMin - startMin) * (hourHeight / 60), 18);
+    g.items.forEach((a, i) => {
       const timeLabel = new Date(a.start_at).toLocaleTimeString('es-US', { hour: 'numeric', minute: '2-digit', timeZone: TIMEZONE });
-
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.className = `week-slot week-slot--appt status-${a.status}`;
-      el.style.top = `${top}px`;
-      el.style.height = `${height}px`;
-      el.innerHTML = `<b>${timeLabel}</b> ${a.client_name}`;
-      el.addEventListener('click', (e) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `upcoming-item upcoming-item--${UPCOMING_ITEM_COLORS[i % UPCOMING_ITEM_COLORS.length]} status-${a.status}`;
+      btn.innerHTML = `<span class="upcoming-item__time">${timeLabel}</span><span class="upcoming-item__name">${a.client_name}</span>`;
+      btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openWeekPopover(a, el);
+        openWeekPopover(a, btn);
       });
-      col.appendChild(el);
+      itemsWrap.appendChild(btn);
     });
 
-    body.appendChild(col);
-  }
+    list.appendChild(row);
+  });
 
-  grid.appendChild(body);
+  container.appendChild(list);
 }
 
 function openWeekPopover(a, anchorEl) {
@@ -689,37 +610,49 @@ function closeWeekPopover() {
 document.addEventListener('click', (e) => {
   const pop = $('#week-popover');
   if (!pop || pop.hidden) return;
-  if (pop.contains(e.target) || e.target.closest('.week-slot--appt')) return;
+  if (pop.contains(e.target) || e.target.closest('.upcoming-item')) return;
   pop.hidden = true;
 });
 
-async function loadWeekView() {
+// How many days ahead to look for "Próximas citas" — generous relative to
+// the client-facing booking horizon (60 days, lib/business-hours.js), so
+// every bookable appointment is covered.
+const UPCOMING_WINDOW_DAYS = 90;
+
+async function loadUpcomingView() {
   $('#agenda-month-grid').hidden = true;
   $('#agenda-list').hidden = true;
-  $('#agenda-week-grid').hidden = false;
+  $('#agenda-upcoming').hidden = false;
+  $('#agenda-prev').hidden = true;
+  $('#agenda-next').hidden = true;
+  $('#agenda-label').textContent = 'Próximas citas';
 
-  const weekEnd = new Date(state.weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  $('#agenda-label').textContent = `${dateKey(state.weekStart)} — ${dateKey(weekEnd)}`;
+  const container = $('#agenda-upcoming');
+  container.innerHTML = '<p class="agenda-empty">Cargando…</p>';
 
-  const grid = $('#agenda-week-grid');
-  grid.innerHTML = '<p class="agenda-empty">Cargando…</p>';
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(from);
+  to.setDate(to.getDate() + UPCOMING_WINDOW_DAYS);
+  to.setHours(23, 59, 59, 999);
 
   try {
-    const toDate = new Date(weekEnd);
-    toDate.setHours(23, 59, 59, 999);
-    const { appointments, openSlots } = await fetchRange(state.weekStart.toISOString(), toDate.toISOString());
-    lastWeekGridData = { weekStart: new Date(state.weekStart), appointments, openSlots };
-    renderWeekGrid(state.weekStart, appointments, openSlots);
+    const { appointments } = await apiFetch(`/api/admin/appointments?from=${from.toISOString()}&to=${to.toISOString()}`);
+    const upcoming = appointments
+      .filter((a) => a.status !== 'cancelled')
+      .sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
+    renderUpcomingList(upcoming);
   } catch (err) {
-    grid.innerHTML = '<p class="agenda-empty">No se pudo cargar la agenda.</p>';
+    container.innerHTML = '<p class="agenda-empty">No se pudo cargar la agenda.</p>';
   }
 }
 
 async function loadMonthView() {
   const grid = $('#agenda-month-grid');
   const list = $('#agenda-list');
-  $('#agenda-week-grid').hidden = true;
+  $('#agenda-upcoming').hidden = true;
+  $('#agenda-prev').hidden = false;
+  $('#agenda-next').hidden = false;
   grid.hidden = false;
   list.hidden = false;
 
@@ -766,15 +699,23 @@ async function loadMonthView() {
       grid.appendChild(el);
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     for (let day = 1; day <= daysInMonth; day++) {
       const d = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
       const key = dateKey(d);
+      const isPast = d < today;
       const apptCount = apptCountByDay[key] || 0;
-      const openCount = openCountByDay[key] || 0;
+      // A day that's already gone shouldn't still read as "Disponible" just
+      // because open_slots rows exist for it — those hours are no longer
+      // bookable, so it should look like any other closed/unavailable day.
+      const openCount = isPast ? 0 : openCountByDay[key] || 0;
       const el = document.createElement('div');
       el.className =
         'cal-day enabled' +
         (state.selectedDay === key ? ' selected' : '') +
+        (isPast ? ' is-past' : '') +
         (openCount ? ' has-open' : '') +
         (apptCount ? ' has-appts' : '');
       el.innerHTML = `
@@ -810,20 +751,16 @@ function initAgendaNav() {
     });
   });
 
+  // Only the month view pages by a cursor — the upcoming list hides these
+  // buttons entirely (see loadUpcomingView).
   $('#agenda-prev').addEventListener('click', () => {
-    if (state.viewMode === 'month') {
-      state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() - 1, 1);
-    } else {
-      state.weekStart.setDate(state.weekStart.getDate() - 7);
-    }
+    if (state.viewMode !== 'month') return;
+    state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() - 1, 1);
     loadAgenda();
   });
   $('#agenda-next').addEventListener('click', () => {
-    if (state.viewMode === 'month') {
-      state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() + 1, 1);
-    } else {
-      state.weekStart.setDate(state.weekStart.getDate() + 7);
-    }
+    if (state.viewMode !== 'month') return;
+    state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() + 1, 1);
     loadAgenda();
   });
 
@@ -832,11 +769,7 @@ function initAgendaNav() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       if (state.currentPanel !== 'agenda') return;
-      if (state.viewMode === 'week' && lastWeekGridData) {
-        renderWeekGrid(lastWeekGridData.weekStart, lastWeekGridData.appointments, lastWeekGridData.openSlots);
-      } else if (state.viewMode === 'month') {
-        loadMonthView();
-      }
+      if (state.viewMode === 'month') loadMonthView();
     }, 200);
   });
 }
