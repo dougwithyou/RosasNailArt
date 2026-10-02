@@ -85,6 +85,17 @@
   // iOS Safari's chrome is animating.
   function updateHeaderVisibility() {
     if (!header) return;
+    // Safety net: once the visitor has scrolled well past a full screen,
+    // always reveal the nav bar — even if the docking measurement above
+    // never resolved (e.g. a stale rect, a resize mid-scroll, or any other
+    // edge case on a specific phone/browser). Without this, a visitor can
+    // get stuck with the header permanently hidden and un-tappable
+    // (.hero-hidden sets pointer-events: none), unable to reach the menu
+    // or booking link at all.
+    if (window.scrollY > window.innerHeight * 1.5) {
+      header.classList.remove('hero-hidden');
+      return;
+    }
     if (!docked || dockedPhotoBottomY == null) {
       header.classList.add('hero-hidden');
       return;
