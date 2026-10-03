@@ -17,7 +17,7 @@ function getStripe() {
 // Public OAuth client ID (safe to ship to the browser — mirrors the same
 // constant in js/admin.js), needed here to deauthorize the connected
 // account on Stripe's side when Maribel disconnects.
-const STRIPE_CONNECT_CLIENT_ID = 'ca_VDHv53UhBTXx0icWWEtr9qsfqwWcAPu5';
+const STRIPE_CONNECT_CLIENT_ID = 'ca_V6YOBs1PnrEnbraOEDn71w1lZHXQejk4';
 
 function dateKey(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
