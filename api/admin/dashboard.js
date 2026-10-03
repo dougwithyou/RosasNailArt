@@ -300,6 +300,21 @@ async function handleStripeBalance(req, res) {
       pendingCents: sum(balance.pending),
     });
   } catch (err) {
+    // A saved account id that no longer exists on the key currently in use
+    // (e.g. a test-mode connection left over from before switching the
+    // platform to live mode) isn't a transient failure — Stripe will never
+    // recognize it again, and leaving it in place would permanently break
+    // this card. Clear it so Maribel sees "Conectar con Stripe" instead of
+    // a dead end with no way to reconnect.
+    const isStaleAccount = err.code === 'resource_missing' || /No such connected account/i.test(err.message || '');
+    if (isStaleAccount) {
+      await getSupabase()
+        .from('business_settings')
+        .update({ stripe_account_id: null, stripe_connected_at: null })
+        .eq('id', true);
+      res.status(200).json({ connected: false });
+      return;
+    }
     console.error('Failed to retrieve Stripe balance', err);
     res.status(500).json({ error: 'No se pudo consultar el balance de Stripe' });
   }
