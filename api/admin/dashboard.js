@@ -306,7 +306,10 @@ async function handleStripeBalance(req, res) {
     // recognize it again, and leaving it in place would permanently break
     // this card. Clear it so Maribel sees "Conectar con Stripe" instead of
     // a dead end with no way to reconnect.
-    const isStaleAccount = err.code === 'resource_missing' || /No such connected account/i.test(err.message || '');
+    const isStaleAccount =
+      err.code === 'resource_missing' ||
+      /No such connected account/i.test(err.message || '') ||
+      /test account created with a testmode key/i.test(err.message || '');
     if (isStaleAccount) {
       await getSupabase()
         .from('business_settings')
