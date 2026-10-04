@@ -1230,7 +1230,7 @@ async function sendAppointmentNotice(appointment, type) {
     });
     alert('Mensaje enviado.');
   } catch (err) {
-    alert('No se pudo enviar el mensaje.');
+    alert(err.message || 'No se pudo enviar el mensaje.');
   }
 }
 

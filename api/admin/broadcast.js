@@ -49,6 +49,11 @@ async function handleNotify(req, res, supabase) {
     recipient = { email: appointment.client_email, name: appointment.client_name, startAt: appointment.start_at };
   }
 
+  if (!recipient.email) {
+    res.status(400).json({ error: 'Esta clienta no tiene email registrado' });
+    return;
+  }
+
   try {
     await sendAppointmentNotice({
       to: recipient.email,
@@ -85,7 +90,7 @@ module.exports = async function handler(req, res) {
       res.status(500).json({ error: 'No se pudo calcular los destinatarios' });
       return;
     }
-    const count = new Set((data || []).map((a) => a.client_email)).size;
+    const count = new Set((data || []).map((a) => a.client_email).filter(Boolean)).size;
     res.status(200).json({ recipientCount: count });
     return;
   }
@@ -110,6 +115,7 @@ module.exports = async function handler(req, res) {
 
     const seen = new Map();
     (data || []).forEach((a) => {
+      if (!a.client_email) return;
       if (!seen.has(a.client_email)) seen.set(a.client_email, a.client_name);
     });
     const recipients = [...seen.entries()].map(([email, name]) => ({ email, name }));

@@ -68,7 +68,7 @@ async function handleList(req, res, supabase) {
 async function handleManualCreate(req, res, supabase) {
   const { serviceId, clientName, clientPhone, clientEmail, startAt, notes } = req.body || {};
 
-  if (!serviceId || !clientName?.trim() || !clientPhone?.trim() || !clientEmail?.trim() || !startAt) {
+  if (!serviceId || !clientName?.trim() || !clientPhone?.trim() || !startAt) {
     res.status(400).json({ error: 'Faltan datos requeridos' });
     return;
   }
@@ -115,7 +115,7 @@ async function handleManualCreate(req, res, supabase) {
       service_id: serviceId,
       client_name: clientName.trim(),
       client_phone: clientPhone.trim(),
-      client_email: clientEmail.trim(),
+      client_email: clientEmail?.trim() || null,
       notes: notes?.trim() || null,
       start_at: start.toISOString(),
       end_at: end.toISOString(),
