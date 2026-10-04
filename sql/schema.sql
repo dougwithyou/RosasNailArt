@@ -27,7 +27,7 @@ create table appointments (
   service_id uuid not null references services(id),
   client_name text not null,
   client_phone text not null,
-  client_email text not null,
+  client_email text,
   notes text,
   start_at timestamptz not null,
   end_at timestamptz not null,
