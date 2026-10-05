@@ -2,10 +2,14 @@
  * ROSAS NAILS ART — Hero scroll reveal
  * On mobile, the hero photo opens full-screen with a greeting; scrolling
  * past the first screen shrinks and docks it into its normal slot in the
- * hero grid, and the nav bar stays hidden until the visitor scrolls past
- * the docked photo itself. Desktop and prefers-reduced-motion both skip
- * straight to the plain, non-animated layout (the pre-existing design,
- * nav bar always visible).
+ * hero grid. Desktop and prefers-reduced-motion both skip straight to the
+ * plain, non-animated layout (the pre-existing design).
+ *
+ * The nav bar itself used to stay hidden through this animation and only
+ * reveal once scrolled past the docked photo. That logic broke repeatedly
+ * on mobile in ways hard to reproduce and diagnose remotely (the header
+ * staying stuck hidden and untappable), so the nav bar is now always
+ * visible — simpler and impossible to get stuck.
  */
 (function () {
   'use strict';
@@ -13,7 +17,6 @@
   const spacer = document.getElementById('hero-scroll-spacer');
   const photo = document.getElementById('hero-photo');
   const slot = document.getElementById('hero-photo-slot');
-  const header = document.getElementById('site-header');
   if (!spacer || !photo || !slot) return;
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -46,13 +49,6 @@
   let targetRadius = 26;
   let docked = false;
   let ticking = false;
-  // Absolute document-Y coordinate of the docked photo's bottom edge,
-  // captured once right when it docks (see dock() below) rather than
-  // re-measured via getBoundingClientRect() on every scroll frame — iOS
-  // Safari can report a stale/incorrect rect for an element while its own
-  // address-bar chrome is animating open/closed mid-scroll, which was
-  // leaving the nav bar stuck hidden well past the hero on some phones.
-  let dockedPhotoBottomY = null;
 
   function lerp(a, b, t) {
     return a + (b - a) * t;
@@ -69,39 +65,6 @@
     targetWidth = r.width;
     targetHeight = r.height;
     targetRadius = parseFloat(getComputedStyle(ref).borderRadius) || 26;
-  }
-
-  function navHeightPx() {
-    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 72;
-  }
-
-  // Keeps the nav bar hidden through the full-screen intro and shrink.
-  // Once docked, it reveals the nav bar as soon as the photo itself has
-  // scrolled past — not the whole hero section (photo + heading + copy
-  // text, which stack tall on mobile and would keep the nav bar hidden
-  // for several screens' worth of extra scrolling otherwise). Compares
-  // against the scrollY-based threshold captured in dock(), not a live
-  // getBoundingClientRect(), so it can't get stuck by a stale rect while
-  // iOS Safari's chrome is animating.
-  function updateHeaderVisibility() {
-    if (!header) return;
-    // Safety net: once the visitor has scrolled well past a full screen,
-    // always reveal the nav bar — even if the docking measurement above
-    // never resolved (e.g. a stale rect, a resize mid-scroll, or any other
-    // edge case on a specific phone/browser). Without this, a visitor can
-    // get stuck with the header permanently hidden and un-tappable
-    // (.hero-hidden sets pointer-events: none), unable to reach the menu
-    // or booking link at all.
-    if (window.scrollY > window.innerHeight * 1.5) {
-      header.classList.remove('hero-hidden');
-      return;
-    }
-    if (!docked || dockedPhotoBottomY == null) {
-      header.classList.add('hero-hidden');
-      return;
-    }
-    const pastHero = window.scrollY + navHeightPx() >= dockedPhotoBottomY;
-    header.classList.toggle('hero-hidden', !pastHero);
   }
 
   function applyFixed(progress) {
@@ -155,13 +118,10 @@
     }
     if (chip) chip.style.opacity = 1;
     if (badge) badge.style.opacity = 1;
-    const rect = photo.getBoundingClientRect();
-    dockedPhotoBottomY = rect.bottom + window.scrollY;
   }
 
   function undock() {
     docked = false;
-    dockedPhotoBottomY = null;
     photo.replaceWith(slot);
     photo.classList.remove('hero-photo--static');
     document.body.appendChild(photo);
@@ -175,7 +135,6 @@
       if (docked) undock();
       applyFixed(progress);
     }
-    updateHeaderVisibility();
     ticking = false;
   }
 
