@@ -1,6 +1,7 @@
 const { getSupabase } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
 const { sendBroadcast, sendAppointmentNotice } = require('../../lib/resend');
+const { sweepExpiredAppointments } = require('../../lib/appointments-cleanup');
 
 const NOTICE_TYPES = ['reschedule', 'late', 'custom'];
 
@@ -74,6 +75,7 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   const supabase = getSupabase();
+  await sweepExpiredAppointments(supabase);
 
   if (req.method === 'POST' && req.body?.mode === 'notify') {
     return handleNotify(req, res, supabase);
