@@ -615,9 +615,9 @@ document.addEventListener('click', (e) => {
 });
 
 // How many days ahead to look for "Próximas citas" — generous relative to
-// the client-facing booking horizon (60 days, lib/business-hours.js), so
+// the client-facing booking horizon (180 days, lib/business-hours.js), so
 // every bookable appointment is covered.
-const UPCOMING_WINDOW_DAYS = 90;
+const UPCOMING_WINDOW_DAYS = 180;
 
 async function loadUpcomingView() {
   $('#agenda-month-grid').hidden = true;

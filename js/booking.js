@@ -14,7 +14,7 @@ const LOCALE = t('booking.js.locale');
 // Días abiertos los define Maribel desde su panel (no hay un horario fijo) —
 // el calendario deja elegir cualquier día futuro dentro del horizonte, y el
 // servidor devuelve los horarios reales (vacío si ese día no está abierto).
-const BOOKING_HORIZON_DAYS = 21; // 3 semanas, según la política de Maribel
+const BOOKING_HORIZON_DAYS = 180; // ~6 meses, según la política de Maribel
 const DEPOSIT_CENTS = 4500; // depósito fijo por cita
 
 const state = {
