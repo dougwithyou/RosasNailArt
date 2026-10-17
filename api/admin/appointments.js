@@ -3,6 +3,7 @@ const { getSupabase } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
 const { sendCancellationEmail } = require('../../lib/resend');
 const { BUFFER_MINUTES, PENDING_HOLD_MINUTES } = require('../../lib/business-hours');
+const { sweepExpiredAppointments } = require('../../lib/appointments-cleanup');
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -265,6 +266,7 @@ module.exports = async function handler(req, res) {
   if (!user) return;
 
   const supabase = getSupabase();
+  await sweepExpiredAppointments(supabase);
 
   if (req.method === 'GET') {
     if (req.query.paymentsFor) return handlePaymentsFor(req, res, supabase);

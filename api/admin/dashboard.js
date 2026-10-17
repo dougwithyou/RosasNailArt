@@ -3,6 +3,7 @@ const { getSupabase } = require('../../lib/supabase');
 const { requireRole } = require('../../lib/auth');
 const { getZonedDateParts, zonedTimeToUtc } = require('../../lib/timezone');
 const { TIMEZONE } = require('../../lib/business-hours');
+const { sweepExpiredAppointments } = require('../../lib/appointments-cleanup');
 
 // Backs the Inicio (stats + Stripe balance) and Clientes tabs of the admin
 // panel, plus the Stripe Connect OAuth callback — merged into one function
@@ -39,6 +40,9 @@ function normalizePhone(phone) {
 }
 
 async function handleStats(req, res) {
+  const supabase = getSupabase();
+  await sweepExpiredAppointments(supabase);
+
   const now = new Date();
   const { year, month, day, weekday } = getZonedDateParts(now, TIMEZONE);
   const todayKey = dateKey(year, month, day);
@@ -59,7 +63,7 @@ async function handleStats(req, res) {
   const monthStart = zonedTimeToUtc(monthStartKey, 0, 0, TIMEZONE);
   const monthEnd = zonedTimeToUtc(nextMonthKey, 0, 0, TIMEZONE);
 
-  const { data, error } = await getSupabase()
+  const { data, error } = await supabase
     .from('appointments')
     .select('id, client_name, client_phone, service_label, start_at, status, deposit_cents')
     .in('status', ['confirmed', 'pending_payment'])
@@ -126,6 +130,7 @@ async function handleStats(req, res) {
 
 async function handleClients(req, res) {
   const supabase = getSupabase();
+  await sweepExpiredAppointments(supabase);
   const { phone } = req.query;
 
   if (phone) {
