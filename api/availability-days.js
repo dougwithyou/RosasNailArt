@@ -10,7 +10,14 @@ const {
 } = require('../lib/business-hours');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_RANGE_DAYS = 62;
+// js/booking.js fetches the whole booking horizon in a single range request
+// (today through BOOKING_HORIZON_DAYS out), so the cap here must cover at
+// least that — tying it to the same constant (plus a little slack) keeps
+// the two from drifting apart again like they did when the horizon was
+// raised from 21 to 180 days without this changing, which made every
+// request get rejected as "Rango demasiado grande" and the calendar show
+// no availability at all.
+const MAX_RANGE_DAYS = BOOKING_HORIZON_DAYS + 7;
 
 function parseTimeParts(timeStr) {
   const [hour, minute] = timeStr.split(':').map((n) => parseInt(n, 10));
