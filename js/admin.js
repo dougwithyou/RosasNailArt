@@ -307,10 +307,8 @@ function renderTodayAppointments(list) {
         <div class="agenda-item__status ${t.status}">${STATUS_LABELS[t.status] || t.status}</div>
         <div class="agenda-item__actions">
           <button type="button" data-notify="reschedule">Reagendar</button>
-          <button type="button" data-notify="late">Voy tarde</button>
           <button type="button" data-notify="custom">Mensaje</button>
           <button type="button" data-cancel class="danger-link">Cancelar</button>
-          <button type="button" data-delete class="danger-link">Borrar</button>
         </div>
       </div>
     `;
@@ -325,7 +323,6 @@ function renderTodayAppointments(list) {
     });
     const apptRef = { id: t.id, client_name: t.clientName, status: t.status };
     $('[data-cancel]', item)?.addEventListener('click', () => cancelAppointment(apptRef, () => loadStats()));
-    $('[data-delete]', item)?.addEventListener('click', () => deleteAppointment(apptRef, () => loadStats()));
     $('[data-open-client]', item)?.addEventListener('click', (e) => openClientPanel(e.target.dataset.openClient || t.phoneKey));
   });
 }

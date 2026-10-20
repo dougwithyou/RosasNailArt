@@ -863,4 +863,21 @@
     padding: 0;
     border-radius: 50%;
   }
+
+  /* Agenda items (e.g. "Citas de hoy") were laid out in one unwrapped row,
+     which overflowed its card and spilled into whatever sat below it on
+     narrow screens. Stack the row into a column and let the action links
+     wrap instead of overflowing. */
+  .agenda-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+  .agenda-item__time { min-width: 0; }
+  .agenda-item__status { align-self: flex-start; }
+  .agenda-item__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
 }
