@@ -282,6 +282,12 @@
   display: grid;
   gap: var(--space-3);
 }
+/* `.payment-choice`'s own `display: grid` ties the UA stylesheet's
+   `[hidden] { display: none }` in specificity, and author styles win that
+   tie — so setting the `hidden` attribute from JS (js/booking.js,
+   applyPaymentPolicy) silently had no visual effect. Needs an explicit,
+   more specific override. */
+.payment-choice[hidden] { display: none; }
 .payment-choice legend {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
